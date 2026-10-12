@@ -1,0 +1,337 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+## [Unreleased]
+
+## [0.15.0]
+
+This release adds `mfb_get_title`, and two CMake options to find memory bugs: `MINIFB_SANITIZE` and `MINIFB_USE_MMGR`. Every backend now releases a window through the same shared code, and the macOS backend also builds with ARC. It also fixes a leak of the Metal frame semaphore on macOS and iOS, a leak on DOS, a drawing bug on X11, and the build with GCC older than 9 and on Android.
+
+### Added
+
+- **`mfb_get_title`**: returns the window title as MiniFB uses it, in UTF-8 (based on [#145](https://github.com/emoon/minifb/pull/145), by @fruediger). A title that is not valid UTF-8 keeps only its printable ASCII characters, as `mfb_set_title` already did. The pointer stays valid until the next `mfb_set_title` or `mfb_close`, and the function returns `""`, never `NULL`. It works on every backend, including Android, iOS, Web and DOS, where the title is not shown. The test `tests/window_title.c` checks it.
+- **`MINIFB_SANITIZE`**: a CMake option, off by default, that builds the library, the examples and the tests with AddressSanitizer, and also with UndefinedBehaviorSanitizer on GCC and Clang. With MSVC it replaces `/ZI` with `/Zi`, because AddressSanitizer does not accept edit and continue.
+- **`MINIFB_USE_MMGR`**: a CMake option, off by default, that tracks the allocations of the library with [mmgr](https://github.com/Darky-Lucera/mmgr). mmgr reports leaks, overruns and blocks released with the wrong function, on every backend, DOS included. CMake downloads it with `FetchContent`; `-DFETCHCONTENT_SOURCE_DIR_MMGR=<path>` uses a local copy instead. The examples and tests are tracked too, and each one names its logs after itself, so that they do not overwrite each other. The Android projects turn it on with `./gradlew assembleDebug -PminifbUseMmgr=ON`. On Linux with OpenGL, the leak report also lists blocks with no source file (`??(0)::??`). They come from Mesa, the OpenGL library, not from MiniFB: mmgr replaces the global `operator new`, so it also sees the allocations of system libraries written in C++. The same happens on macOS, with Cocoa and with Metal: about a thousand of these blocks come from AppKit, Metal and CoreAnalytics. These frameworks also allocate from their own threads (libdispatch). mmgr only locks its tables after a call to `m_enableMultithread()`. Without that call, two threads can corrupt the tables at the same time, and the program crashes at random a few seconds after it opens the window. The examples and tests call `m_enableMultithread()` before `m_setLogFiles()`. Your own program must do the same when it links MiniFB with mmgr. On iOS, the working directory of the app is read only, so the example writes its logs to the `tmp` folder of the app (`NSTemporaryDirectory()`). On the Simulator, `xcrun simctl get_app_container <device> com.minifb.noise data` gives the data folder of the app, which contains `tmp`. With mmgr 1.0.0, iOS apps stop before `main`. Xcode links with `-dead_strip`, which removes the `operator new` of mmgr but keeps its `operator delete`. A system library then allocates a block with its own `new` and releases it with the `delete` of mmgr, which does not know the block. The next version of mmgr fixes this. Until then, set `FETCHCONTENT_SOURCE_DIR_MMGR` to a copy of mmgr that has the fix. iOS and Android usually end an app without calling `exit()`, so mmgr may never write its leak report at exit. Their examples call `m_dumpLeakReport()` when they close. On Android, the app is a shared library that the system loads with `dlopen`. Its `operator new` does not replace the one of the system libraries, so the report lists only the blocks of MiniFB and of the app. Android can still run two `android_main` threads at the same time: when it recreates the activity, the new thread can start before the old one ends. For that reason the Android examples also call `m_enableMultithread()`.
+
+### Changed
+
+- Every backend now releases a window through the same shared code, also when `mfb_open_ex` fails halfway, so a resource added to the shared window data is released everywhere.
+- macOS: the backend also builds with ARC (`-fobjc-arc`). It still uses manual reference counting by default.
+
+### Fixed
+
+- X11: `mfb_update_ex` drew a buffer of a new size through the image created for the size given to `mfb_open_ex` when the new size matched the area it is drawn to. The picture came out wrong. It now uses the scaled image whenever the buffer size differs from either of them.
+- GCC older than 9 failed to compile MiniFB as C. Those versions also define `__has_cpp_attribute` in C, so `MFB_DEPRECATED` and `MFB_ENUM_DEPRECATED` expanded to the C++ `[[deprecated]]` attribute. They now check `__cplusplus` first.
+- DOS: when `mfb_open_ex` could not allocate the scale buffer or the scanline buffer, it leaked the frame timer, and in the first case the scanline buffer too.
+- Android: the CMake files of the example and test projects did not list `src/MiniFB_utf8.c`, so they failed to link.
+- macOS and iOS with Metal: every window leaked its frame semaphore when it closed. The semaphore can only be released once the GPU has finished the frames still in flight, or libdispatch aborts, so closing a window now waits for them, at most one second per frame.
+- Examples: `hidpi` kept using a window after `mfb_wait_sync` had released it, so closing both windows at once could crash it. `noise`, `input_events`, `hide_cursor` and `timer` did not free their buffers, and `timer` did not destroy its timer. The Android and iOS examples did not free their buffer either. When the iOS app ended, its example only marked the window for closing, so MiniFB never released it. In the Android examples, while the activity was paused, the loop called `mfb_wait_sync` and then `continue`, which calls `mfb_wait_sync` again in the loop condition. When Android destroyed the paused activity, the first call released the window and the second one used it. With mmgr, which fills released memory with `0xdeadbeef`, `native2021` crashed every time.
+
+## [0.14.0]
+
+This release adds a callback for the cursor entering and leaving the window. Adding it to every backend showed that the backends did not report mouse and keyboard input in the same way, so this release also fixes that. Mouse and keyboard input now follow one contract on every backend. The same action produces the same callbacks, in the same order, with the same arguments and modifiers, so code tested on one platform behaves the same on the others. The few differences that remain come from the platform, such as AltGr on native Windows. Two interactive tests, `tests/mouse_events.c` and `tests/keyboard_events.c`, check the contract on any backend. A third one, `tests/window_events.c`, does the same for the active, resize and close callbacks.
+
+### Added
+
+- **Color channel macros**: `MFB_GET_A`, `MFB_GET_R`, `MFB_GET_G` and `MFB_GET_B` read one channel from a pixel. They follow the same platform layout as `MFB_ARGB`, so they also work on Android ([#142](https://github.com/emoon/minifb/pull/142), by @cannedbeef).
+- **Cursor enter and leave**: `mfb_set_mouse_enter_callback` reports the cursor entering or leaving the window content area, and `mfb_is_mouse_inside` returns the same state. It fires only on a real crossing, and while a button is held the window keeps the pointer, so dragging out reports no leave until the button is released. Android needs a mouse, trackpad or hover capable stylus. iOS and DOS never fire it, but on DOS `mfb_is_mouse_inside` is true when a mouse driver is present. The C++ wrapper has the same callback, for a `std::function` and for a member function.
+- **Web `MFB_WF_RESIZABLE`**: the canvas follows its CSS layout box scaled by `devicePixelRatio`, so the page must give it a relative size. Without the flag the drawing buffer stays pinned to the framebuffer size, as before.
+- **DOS mouse wheel**: the wheel is read from the mouse driver through the CuteMouse API, so `mfb_set_mouse_scroll_callback` works there without giving up the arrow keys.
+- **X11 text input through xkbcommon**: dead keys and Compose sequences now come from the system Compose file, the same source the Wayland backend uses, instead of a built-in table that only knew five accents over Latin-1 vowels. The library is optional and found with `pkg-config`. `-DMINIFB_X11_USE_IME=ON` puts an X11 input method (XIM) in front of it, and without xkbcommon that input method is used on its own, as before.
+- **Web text input through a hidden text field**: dead keys, input method composition and characters outside the Basic Multilingual Plane now reach `mfb_set_char_input_callback`.
+- Three interactive tests, `tests/mouse_events.c`, `tests/keyboard_events.c` and `tests/window_events.c`, that walk a person through the mouse, keyboard and window event contracts and end with a summary meant to be compared between backends with `diff`.
+- Two testing documents: `docs/testing-x11.md`, on testing how X11 names keys on a server that does not number them the evdev way, without needing such a server, and `docs/testing-dos.md`, on running the interactive tests under DOSBox-x. The Wayland testing document is now `docs/testing-wayland.md`, next to them.
+
+### Changed
+
+- **`MFB_RGB` sets the alpha channel to `0xFF`**: it is now `MFB_ARGB(0xFF, r, g, b)`, and it left alpha at `0` before. Code that compares pixels with a raw value such as `0x00FF0000` has to include the alpha byte ([#142](https://github.com/emoon/minifb/pull/142), by @cannedbeef).
+- **Frame pacing on Web and DOS**: `mfb_wait_sync` honours the target frame rate on both, as every other backend does. DOS returned as soon as it had pumped events and Web yielded to the browser once, so `mfb_set_target_fps` did nothing on either. Call `mfb_set_target_fps(0)` to go back to the old behaviour, with no frame limit.
+- **Android external mouse buttons**: a mouse click reported the touch pointer id, always `0`, in the `button` argument. It now reports the real button, like the desktop backends. The packed pointer id now says which device it was: a mouse or a hovering stylus reports the new `MFB_POINTER_ID_MOUSE`, and a finger reports a lower id. Touch is unchanged.
+- **DOS keypad keys**: with Num Lock off the keypad reports Home, the arrows, Page Up and the rest, which is what a program written for DOS expects; with Num Lock on it reports the keypad keys. Define `MINIFB_DOS_KEYPAD_POSITIONAL` to always report the physical keypad key, as the other backends do.
+- **Windows AltGr**: Windows presses a left Control of its own for AltGr, and MiniFB now always reports it. AltGr arrives as `MFB_KB_KEY_LEFT_CONTROL` followed by `MFB_KB_KEY_RIGHT_ALT`. MiniFB used to hide that Control by checking whether the Alt message was already in the queue, but the answer depended on timing: the same keystroke reported one key on some runs and two on others, and a Control release could arrive with no press. Every other backend, Web included, reports AltGr as one key.
+- **macOS key next to left Shift**: it reports `MFB_KB_KEY_WORLD_2` instead of `MFB_KB_KEY_WORLD_1`, like every other backend.
+- **macOS Num Lock bit**: `MFB_KB_MOD_NUM_LOCK` is never set. macOS has no Num Lock, and the flag MiniFB read only says that a key is on the keypad or is an arrow. The keypad Clear key still reports `MFB_KB_KEY_NUM_LOCK`.
+- **macOS Caps Lock**: each toggle reports a press followed by a release, as on the other backends. Before, turning the lock on reported a press and turning it off reported a release.
+
+### Fixed
+
+Mouse, where each row is what an application used to receive:
+
+| Backend | Divergence |
+| --- | --- |
+| X11 | Every wheel notch twice, because it arrives as a button press followed by a release |
+| Windows | `MFB_MOUSE_BTN_5` and `MFB_MOUSE_BTN_6` for the side buttons, where the others report `MFB_MOUSE_BTN_4` and `MFB_MOUSE_BTN_5` |
+| Web | Both wheel axes with the opposite sign; MiniFB counts up and left as positive |
+| Android | The horizontal wheel axis with the opposite sign, for the same reason |
+| Web, Wayland, Android, macOS | A scroll callback with both axes at zero, from a kinetic scroll ending or a trackpad gesture only changing phase |
+
+Keyboard:
+
+| Area | What changed |
+| --- | --- |
+| Modifiers | They are built from both sources, the keys held and what the platform reports. Releasing one Shift while the other was held reported no Shift, and AltGr reported no Alt on the layouts where the system does not count it as one. Mouse button and wheel callbacks carry the same modifiers as the keyboard callback |
+| Losing the focus | Every key still held is released, one callback each, leaving only the locks in the modifiers. The real release goes to whatever window took the focus and never arrives, so an application that tracked state from callbacks kept the key held forever. Only Wayland did this before |
+| Gaining the focus | Windows, X11 and macOS rebuild the key buffer from the keyboard itself, so a key pressed while another window had the focus is in it. X11 and macOS also do this when the window opens. Windows also reads the locks again, so a lock toggled in another window shows in the modifiers |
+| Callback order | The physical key is reported before the character it produces. Wayland had the two the other way round |
+| Text callback | Control characters, DEL, the C1 range and lone surrogates no longer reach `mfb_set_char_input_callback`. On Windows, Enter, Tab and Backspace arrived there as `\r`, `\t` and `\b`. Those keys are still reported by the keyboard callback |
+
+Every backend:
+
+- **The window title is UTF-8.** A title that is not valid UTF-8 is now reported once in the log and its non-ASCII bytes dropped, instead of mojibake on Windows, no title at all on macOS, and a protocol error that closes the connection on Wayland. Windows creates a Unicode window now, so a valid non-ASCII title shows correctly, and X11 also sets `_NET_WM_NAME` for current window managers.
+- **Frame pacing could stop for good.** Elapsed time was measured with an unsigned subtraction, and the compensated reset at the end of a frame can leave the start of the next one in the future. One frame that ran long then measured as almost 2^64 ticks, and every frame after it skipped its wait.
+
+Per backend:
+
+| Backend | Fix |
+| --- | --- |
+| Windows | A mouse button released outside the window is delivered; dragging out used to leave it marked as held forever |
+| Windows | Shift and the Windows key no longer stay held when the system swallows their key up, as it does after Win+V |
+| Windows | Print Screen reports a press; Windows only sends the key up for it |
+| Windows | Text outside ASCII arrives whole, because the window and its message loop are Unicode now |
+| Windows | Closing a window with the cursor hidden no longer leaves the cursor hidden |
+| Windows | A null backend window state could be dereferenced in `WM_MOUSEMOVE` and `WM_SIZE` |
+| Windows | Restoring a minimized window no longer calls the resize callback with the size it already had |
+| Windows | Opening a window after closing all the others no longer logs a DPI awareness warning. If the DPI awareness was already set, for example in the application manifest, MiniFB now says so at INFO level instead of warning |
+| macOS | One wheel notch reports the same amount as elsewhere; `NSEvent` gives a fraction of a line per notch, a tenth of one on some devices. Trackpad deltas are unchanged |
+| macOS | Left and right modifiers are tracked separately. Releasing one Shift, Control, Option or Command while the other side was held reported nothing, and that key stayed held |
+| macOS | On an ISO keyboard, the key below Escape and the key next to left Shift are no longer swapped |
+| macOS | Text outside the Basic Multilingual Plane arrives as one code point. Code points such as `U+1F7E0` were dropped, because their low 16 bits looked like a function key |
+| macOS | Text committed several characters at a time, as an input method does, arrives one callback per character; they were read two at a time into a single value |
+| macOS | A key up for a key that losing the focus already released is no longer delivered a second time |
+| X11 | A key is named by where it is on the servers that number keys the evdev way, every current Xorg and Xwayland, so a Dvorak or AZERTY layout no longer moves the letters. Other servers keep naming a key after the keysym it produces, and `MINIFB_X11_DISABLE_EVDEV_KEYCODES` forces that fallback |
+| X11 | Auto-repeat no longer arrives as a release followed by a press |
+| X11 | Caps Lock and Num Lock report the state they leave behind, not the previous one |
+| X11 | A grab, from the window menu, alt-tab or dragging the window, is no longer reported as a focus change |
+| X11 | Entering the window at the end of another application's drag is reported; `mfb_is_mouse_inside` stayed false until the pointer left and came back |
+| X11 | Moving the window no longer calls the resize callback, and a real resize calls it once instead of twice |
+| Wayland | Losing the pointer releases the held buttons before reporting the leave, not after |
+| Web | The getters match the callback being delivered, because the state travels with each queued event |
+| Web | The active callback follows the real keyboard focus, which is also what decides whether keys reach the window |
+| Web | A key or mouse release with no press behind it is no longer delivered |
+| Web | A modifier release the browser reports without a key code is recovered; on Windows it reports no code at all once both Shift keys are down |
+| Web | AltGr arrives as one key on every host system. A browser under Windows also sends the Control that Windows presses for AltGr, and Web drops it |
+| Web | `IntlBackslash`, the key between the left Shift and Z, was missing from the key map |
+| iOS | Multi-touch works; `UIView` defaults `multipleTouchEnabled` to `NO`, so UIKit delivered one contact at a time |
+| DOS | The arrow keys work; extended Up and Down were always turned into wheel scroll, which now needs `MINIFB_DOS_WHEEL_FROM_ARROW_KEYS` |
+| DOS | Extended keys report their own token instead of the base scancode they borrow: right Ctrl and Alt, the navigation block, the Windows keys, Menu, keypad Enter and divide, and Pause. They also typed the text of that base key, so Home produced a `7` |
+| DOS | The key between the left Shift and Z reports `MFB_KB_KEY_WORLD_2` instead of `MFB_KB_KEY_UNKNOWN` |
+| DOS | Num Lock reaches the modifiers, and releasing one Shift or Control no longer clears the bit while the other side is held |
+| DOS | A scancode with no token produces no keyboard callback; its text, when it has any, is still delivered |
+| DOS | The mouse position is reported in window units; VESA can pick a mode twice the size the application asked for |
+
+Macros:
+
+- **Android big-endian color layout**: `MFB_RGB` and `MFB_ARGB` put the channels in the order the Android documentation gives. Before, big-endian builds used the desktop layout ([#142](https://github.com/emoon/minifb/pull/142), by @cannedbeef).
+- `MiniFB_macros.h` defines each color macro once, from one set of channel shifts, instead of one copy per platform ([#143](https://github.com/emoon/minifb/pull/143), by @cannedbeef).
+
+Build:
+
+- The Web examples build again when the build directory is outside the source tree. Each example's HTML page is also copied again whenever it changes, not only when the example is rebuilt.
+- The new `MINIFB_BUILD_TESTS` option builds the interactive tests. It is on by default, so a project that adds MiniFB with `add_subdirectory` builds them too unless it sets the option to `OFF`.
+- GCC builds are warning free again. Casting the result of `GetProcAddress` and `wglGetProcAddress` to a concrete signature trips `-Wcast-function-type`. The casts now go through `void (*)(void)`, as GLFW and SDL do.
+- macOS links the Carbon framework as well as Cocoa, only to ask whether the keyboard is ISO. A build that does not use the CMake project has to add `-framework Carbon`.
+- The DJGPP build names its executables so they fit the DOS 8.3 limit: `keyevent.exe`, `mouseevt.exe`, `inpevent.exe` and so on. The CMake target names do not change, and `docs/testing-dos.md` lists them all.
+
+## [0.13.0]
+
+### Added
+
+- **Wayland client-side decorations**: when the compositor does not implement `xdg-decoration`, MiniFB now draws the window frame with libdecor instead of leaving the window bare. libdecor is opened with `dlopen` the first time a window needs it, so it is never a link-time dependency: a binary built on a machine that has libdecor still runs on one that does not. If the library, any symbol it needs, or the compositor support is missing, the window falls back to a plain undecorated toplevel and MiniFB says so in the log. CMake finds the headers with `pkg-config` and reports which case applies, including the common one where the runtime library is installed but the development package is not.
+
+### Changed
+
+- Wayland: the surface now declares its opaque region, and refreshes it whenever the surface changes size. The buffer format has no alpha channel, so the whole surface is opaque, but a compositor that is not told this may still blend it. Declaring it lets the compositor skip that work and discard whatever the window covers. GLFW and SDL do the same.
+
+### Known issues
+
+- Wayland on WSLg: maximizing a window that libdecor decorates leaves the drop shadow of the floating window drawn over the maximized one, at its previous size and position. MiniFB removes the shadow correctly and the compositor confirms it, so this is not specific to MiniFB: the same artifact appears with GLFW and was reported against FLTK in [microsoft/wslg#914](https://github.com/microsoft/wslg/issues/914). It does not happen on native Linux compositors. Resizing the window by hand clears it.
+
+## [0.12.0]
+
+### Added
+
+- **Log level from the environment**: `MINIFB_LOG_LEVEL` sets the log threshold by name (`trace`, `debug`, `info`, `warning`, `error`) without touching the code. It deliberately wins over `mfb_set_log_level()`, so you can get more output from a program you cannot rebuild. An unknown value is reported as an error and then ignored, leaving the threshold where the program left it.
+- **Wayland fallback testing**: `MINIFB_WAYLAND_FORCE_VERSIONS` lowers the version MiniFB binds for one or more protocol globals, and `MINIFB_WAYLAND_DISABLE_GLOBALS` hides globals as if the compositor never advertised them. Both work in every build and are read only while globals are bound, so a single machine can exercise fallback paths that would otherwise need another compositor.
+- Added `docs/wayland-testing.md`: the interfaces each variable accepts, which versions are worth testing and what each one covers, the related variables from libwayland and xkbcommon, and what this approach cannot test.
+
+### Changed
+
+- Wayland mouse wheel: the continuous `wl_pointer.axis` value is now divided by the ratio Weston uses, which SDL and GLFW follow too. One notch reports `1.0`, like the other backends. This only affects compositors that fall back to the continuous value. Those that send `axis_value120` or `axis_discrete` already reported `1.0`.
+- Every Wayland listener callback now carries a comment with its protocol interface and the version that introduced it, so the version-dependent paths can be found with grep.
+- Wayland: `xdg_toplevel.configure` now logs its state array at DEBUG (`activated`, `suspended`, `maximized`, `resizing`, ...) instead of discarding it.
+- Wayland: `wl_keyboard.repeat_info` now logs the advertised rate and delay at DEBUG. It also reports when client-side repeat is off, which happens when the compositor drives it instead.
+- Wayland: MiniFB now says when a window will have no frame. It logs the negotiated decoration mode at DEBUG. A client-side answer to a server-side request also raises a warning. The warning for a missing decoration manager now states the same fact instead of describing the protocol.
+- Wayland: a failed dispatch now reports what libwayland knows about the connection. A protocol error names the interface, the object and the error code. Any other failure reports the system error. Before, every case printed the same generic message.
+- Rewrote `README.md` in plainer English and corrected stale details: `mfb_update` return values, ESC handling, the macOS Metal default, the X11 default on Linux, the Wayland dependencies, and Web monitor scale and cursor support. Added a CMake options table, and replaced the per-platform "Beta" labels with what each backend actually supports.
+
+### Fixed
+
+- Wayland: `wl_pointer.axis_discrete` no longer marks an axis as valid when the compositor reports a discrete step of `0`.
+- Wayland: a protocol error is no longer reported as `EPIPE`. The dispatch helpers gave up as soon as the flush failed. They never read the error the compositor had queued before closing the socket. They now continue to the read, as libwayland does in the function they derive from.
+- Wayland: key repeat now runs at the rate the compositor asks for. MiniFB computed the next deadline from the moment the previous repeat fired. Every interval then rounded up to the next poll. On KWin at 25 cps, the measured rate was 19.18 before the fix and 25.06 after.
+- Wayland: a hidden window no longer uses a whole CPU core. The frame throttle's wait budget belonged to the frame callback, and nothing refreshed it once it expired. Every later update then skipped without waiting. An application with no other frame pacing had nothing left to pace it. The budget now belongs to each update call. On KWin, a minimized window with no target FPS dropped from 100% of a core to 3.8%, and the visible frame rate did not change.
+
+## [0.11.0]
+
+### Changed
+
+- **Wayland backend modernization**: promoted Wayland to a first-class desktop backend alongside Windows, macOS, and X11, with reworked SHM presentation, event dispatch, frame pacing, scaling, input, and resource lifecycle handling.
+- Updated the bundled Wayland protocol bindings to 1.49 and added viewporter-based fractional and per-surface HiDPI scaling.
+- **CMake restructure**: the build now checks the prefixed option names internally, adds `MINIFB_BUILD_EXAMPLES`, and uses `cmake_dependent_option` where one option depends on another. It also fixes the exported package config, the generated version header, and the Emscripten, iOS and macOS build paths. The unprefixed names were already deprecated in 0.9.3 and keep working.
+
+### Fixed
+
+- Improved Wayland reliability and responsiveness during initial mapping, resize, minimize, multi-output scale changes, buffer reuse, and compositor-driven configure sequences.
+- Completed Wayland keyboard, pointer, and scroll behavior, including compose/dead keys, key repeat, modifier and focus synchronization, stuck-input cleanup, and safe seat/global removal.
+- Hardened Wayland protocol negotiation and version-dependent object cleanup across older and newer environments.
+- Fixed macOS `flagsChanged` events produced by focus synchronization toggling alphanumeric keys.
+
+## [0.10.1]
+
+### Added
+
+- **Window title API**: added `mfb_set_title` to change the window title after creation. Implemented on Windows, macOS, X11, and Wayland, with no-op stubs on iOS, Android, Web, and DOS.
+
+### Changed
+
+- Unified keycode-table initialization across Windows, macOS, X11, and Wayland with one-time setup and explicit reset to `MFB_KB_KEY_UNKNOWN`.
+- Moved the shared `stretch_image` declaration into `src/MiniFB_internal.h`.
+
+### Fixed
+
+- Fixed X11 dead-key compose cancellation so the standalone accent is emitted before the following character, matching Windows and macOS behavior.
+- Fixed X11 and Wayland keyboard handling to avoid updating key state or firing keyboard callbacks for untranslated keys.
+- Fixed DOS release completeness by adding the missing `mfb_set_title` backend stub required by the public API.
+
+## [0.10.0]
+
+### Added
+
+- **Logging API**: `mfb_set_logger`, `mfb_set_log_level`, `mfb_log`, `mfb_log_level`, `mfb_log_info`, and `MFB_LOG*` helper macros for runtime log control and source-location-aware diagnostics. Backend messages now route through the shared logger instead of ad-hoc `fprintf`/`NSLog`.
+- **Display inset APIs**: `mfb_get_display_cutout_insets` and `mfb_get_display_safe_insets` for mobile-safe layouts (Android API 28+, iOS, desktop stubs return zeros).
+- **Touch pointer decoding**: `mfb_decode_touch`, `mfb_decode_touch_pos`, and `mfb_decode_touch_id` to decode packed pointer id/position values from mobile mouse getters.
+- **Monitor scale**: implemented `mfb_get_monitor_scale` for Web (`devicePixelRatio`) and Android.
+- **Cursor control**: implemented `mfb_show_cursor` for Web.
+- **X11 scale detection**: layered fallbacks (XSettings, Xresources, XRandR, physical DPI).
+- **DOS viewport**: basic viewport support for the MS-DOS backend.
+- **Android `mfb_update_events`**: event-only pump without rendering, matching other backends.
+- **Android example**: new example project using Android Studio Narwhal (native2026).
+- **New headers**: `MiniFB_macros.h` (deprecation/pixel/logging macros), `MiniFB_types.h` (callback and logging typedefs), `WindowData_Web.h`.
+- **Internal helpers**: `calculate_buffer_layout` (overflow-safe buffer validation) and `mfb_validate_viewport` (unified viewport checks), used by all backends.
+
+### Changed
+
+- Standardized public enum naming to `MFB_*` prefixes across states, keys, modifiers, mouse buttons, and window flags.
+- Unified `mfb_open_ex` behavior across backends: consistent flag handling, `NULL`/empty title defaults to `"minifb"`, mutually-exclusive fullscreen flags logged.
+- Unified `mfb_set_viewport` behavior across backends with shared validation and consistent destination recalculation.
+- Unified `mfb_get_monitor_scale` so `window == NULL` is accepted across backends, returning the primary monitor scale where available and `1.0` fallback otherwise.
+- Unified mouse wheel reset (`mouse_wheel_x/y = 0`) on every update across all backends.
+- Web backend: auto-creates missing canvas element; pumps events in `mfb_wait_sync`.
+- Moved `accumulated_error_ticks` into the timer struct (was static).
+- Replaced deprecated Android API `ALooper_pollAll` with `ALooper_pollOnce`.
+- Callback parameter names unified (`is_active`, `is_pressed`, `delta_x`, `delta_y`).
+- Renamed `tests/` to `examples/` and updated CMake/example project paths accordingly.
+- Reorganized Android examples into `native2021`/`native2026` folders.
+- Moved DOS tools to `tools/dos/`, Wayland protocol generator to `tools/wayland/`.
+- Updated DJGPP GCC toolchain to 12.2.0.
+- Normalized line endings with `.gitattributes`.
+
+### Deprecated
+
+- All non-prefixed enum constants (`STATE_*`, `KB_*`, `MOUSE_*`, `WF_*`) in favor of `MFB_*` equivalents. Old names remain as deprecated aliases with compiler warnings.
+
+### Fixed
+
+- Fixed `MFB_ARGB` macro on Android little-endian (had 3 parameters instead of 4).
+- Fixed Web `mfb_update_ex` not updating `buffer_width`/`buffer_height`/`buffer_stride`.
+- Fixed integer overflow potential in buffer size calculations across all backends.
+- Fixed iOS: Metal safety, content scale, touch coordinates, window lookup, active/close event management, and safer cutout/safe-inset handling when no launch screen is configured.
+- Fixed Android: API 32-34 display cutout handling; surface transition and rotation edge cases.
+- Fixed macOS: improved robustness and replaced `NSLog` with `mfb_log`.
+- Fixed Windows: double-click messages now map to regular mouse button press events.
+- Fixed Windows: initial window sizing on high-DPI displays so the client area and viewport stay aligned.
+- Fixed X11: initial normal-window placement now centers on a real monitor instead of the combined virtual desktop.
+- Fixed C++ wrapper: callback stubs are released when windows are destroyed, preventing stale callback reuse after recreating windows.
+- Fixed Web: initialization/teardown robustness when `document.body` is not yet available.
+- Fixed Wayland `wl_surface_attach`: the viewport offset was passed as the buffer offset, so buffers are now attached at `0, 0`.
+- Fixed Wayland seat and output handling: pointer and keyboard listeners are added only when the seat really provides the object, and a removed `wl_output` is compared with the current one before it is destroyed.
+- Fixed MS-DOS keyboard: completed the scancode table (numpad keys, F11/F12), read the initial Caps Lock state from the BIOS, applied Caps Lock to letters only, and stopped an out-of-bounds write for keys mapped to `KB_KEY_UNKNOWN` (`-1`, seen as `0xFFFFFFFF` when indexing the key table).
+- Fixed MS-DOS mouse: the driver presence check uses the documented `0xFFFF` reply, the pointer range follows the real VESA resolution instead of the requested window size, and the middle button fires its callback.
+- Fixed MS-DOS input under DPMI by locking the ring-buffer code used from the interrupt handler (`_go32_dpmi_lock_code`).
+- Fixed use-after-free during teardown: macOS clears the `MTKView` delegate before closing the window, the OpenGL path no longer closes the X11 display it does not own, and the DOS backend no longer frees `window_data` while the caller is still using it.
+
+## [0.9.3]
+
+### Changed
+
+- Reworked CMake target setup to apply compile options, definitions, standards, and link options per-target instead of relying on global flags.
+- Improved CMake package installation/export flow with generated `minifb-config.cmake`, `minifb-targets.cmake`, and `minifb-config-version.cmake`.
+- Raised `cmake_minimum_required` from `3.10` to `3.16`.
+- Removed obsolete manual iOS detection logic in `CMakeLists.txt` now covered by modern CMake.
+- `MINIFB_BUILD_VERSION_INFO` is now disabled automatically on iOS, Android, and Emscripten builds.
+
+### Deprecated
+
+- Deprecated legacy CMake flags `USE_METAL_API`, `USE_INVERTED_Y_ON_MACOS`, `USE_WAYLAND_API`, and `USE_OPENGL_API` in favor of the `MINIFB_USE_*` equivalents (legacy names are still accepted).
+
+### Fixed
+
+- Fixed newline consistency in `include/MiniFB.h`.
+- Adjusted deprecation macro cleanup placement in `include/MiniFB.h`.
+- Corrected the CMake project version metadata for the `0.9.2` line in `CMakeLists.txt`.
+
+## [0.9.2]
+
+### Fixed
+
+- Fixed an Emscripten build issue caused by a legacy linker setting used in strict mode.
+
+### Notes
+
+- 2026-03-11: The `v0.9.2` tag was re-pointed to include a CMake version number correction only (`CMakeLists.txt`), with no functional source code changes.
+- Sorry about this. You must execute:
+
+```shell
+git fetch origin --tags --force
+```
+
+## [0.9.1]
+
+### Removed
+
+- Removed Tundra build support files (`tundra.lua` and `units.lua`).
+
+### Changed
+
+- Minor README cleanup and consistency updates.
+
+### Fixed
+
+- Fixed a minor compilation issue when building with MinGW.
+
+## [0.9.0]
+
+### Added
+
+- First formal release with semantic versioning.
+
+## [Pre-0.9.0]
+
+### Notes
+
+- The project has been available on GitHub since 2014.
+- Changes before version 0.9.0 were not tracked with formal release versions.
+
+[Unreleased]: https://github.com/emoon/minifb/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/emoon/minifb/releases/tag/v0.15.0
+[0.14.0]: https://github.com/emoon/minifb/releases/tag/v0.14.0
+[0.13.0]: https://github.com/emoon/minifb/releases/tag/v0.13.0
+[0.12.0]: https://github.com/emoon/minifb/releases/tag/v0.12.0
+[0.11.0]: https://github.com/emoon/minifb/releases/tag/v0.11.0
+[0.10.1]: https://github.com/emoon/minifb/releases/tag/v0.10.1
+[0.10.0]: https://github.com/emoon/minifb/releases/tag/v0.10.0
+[0.9.3]: https://github.com/emoon/minifb/compare/v0.9.2...v0.9.3
+[0.9.2]: https://github.com/emoon/minifb/compare/v0.9.1...v0.9.2
+[0.9.1]: https://github.com/emoon/minifb/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/emoon/minifb/releases/tag/v0.9.0

@@ -1,0 +1,1625 @@
+#include <MiniFB.h>
+#include <MiniFB_internal.h>
+#include <emscripten.h>
+#include <WindowData.h>
+#include "WindowData_Web.h"
+#include <malloc.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#if defined(MINIFB_USE_MMGR)
+    #include "mmgr.h"
+#endif
+
+//-------------------------------------
+#define EM_EXPORT __attribute__((used))
+
+//-------------------------------------
+static bool g_initialized = false;
+
+//-------------------------------------
+static SWindowData_Web *
+mfb_web_get_data(SWindowData *window_data) {
+    if (window_data == NULL) {
+        return NULL;
+    }
+
+    return (SWindowData_Web *) window_data->specific;
+}
+
+//-------------------------------------
+static uint8_t *
+mfb_web_ensure_swizzle_buffer(SWindowData *window_data, unsigned width, unsigned height) {
+    SWindowData_Web *window_data_specific = mfb_web_get_data(window_data);
+    if (window_data_specific == NULL || width == 0 || height == 0) {
+        return NULL;
+    }
+
+    if ((size_t) width > SIZE_MAX / (size_t) height) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: swizzle buffer size overflow for %ux%u.", width, height);
+        return NULL;
+    }
+
+    size_t pixels = (size_t) width * (size_t) height;
+    if (pixels > SIZE_MAX / 4) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: swizzle buffer byte size overflow for %ux%u.", width, height);
+        return NULL;
+    }
+
+    size_t required = pixels * 4;
+    if (required > window_data_specific->swizzle_buffer_size) {
+        uint8_t *swizzle_buffer = realloc(window_data_specific->swizzle_buffer, required);
+        if (swizzle_buffer == NULL) {
+            MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: failed to allocate %zu bytes for swizzle buffer.", required);
+            return NULL;
+        }
+        window_data_specific->swizzle_buffer = swizzle_buffer;
+        window_data_specific->swizzle_buffer_size = required;
+    }
+
+    return window_data_specific->swizzle_buffer;
+}
+
+//-------------------------------------
+EM_ASYNC_JS(void, setup_web_mfb, (), {
+    // FIXME currently disabled. This will make requests pile up
+    // and potentially execute multiple C calls in parallel (sort of).
+    // which leads to stack/heap corruption.
+    //
+    // Wait for Emscripten to provide a RAF basd emscripten_sleep()
+    //
+    // Use requestAnimationFrame instead of setTimeout for async processing.
+    // Asyncify.handleSleep(wakeUp => {
+    //        requestAnimationFrame(wakeUp);
+    // });
+
+    window._minifb.keyMap = {
+            "Space": 32,
+            "Quote": 39,
+            "Comma": 44,
+            "Minus": 45,
+            "Period": 46,
+            "Slash": 47,
+            "Digit0": 48,
+            "Digit1": 49,
+            "Digit2": 50,
+            "Digit3": 51,
+            "Digit4": 52,
+            "Digit5": 53,
+            "Digit6": 54,
+            "Digit7": 55,
+            "Digit8": 56,
+            "Digit9": 57,
+            "Semicolon": 59,
+            "Equal": 61,
+            "KeyA": 65,
+            "KeyB": 66,
+            "KeyC": 67,
+            "KeyD": 68,
+            "KeyE": 69,
+            "KeyF": 70,
+            "KeyG": 71,
+            "KeyH": 72,
+            "KeyI": 73,
+            "KeyJ": 74,
+            "KeyK": 75,
+            "KeyL": 76,
+            "KeyM": 77,
+            "KeyN": 78,
+            "KeyO": 79,
+            "KeyP": 80,
+            "KeyQ": 81,
+            "KeyR": 82,
+            "KeyS": 83,
+            "KeyT": 84,
+            "KeyU": 85,
+            "KeyV": 86,
+            "KeyW": 87,
+            "KeyX": 88,
+            "KeyY": 89,
+            "KeyZ": 90,
+            "BracketLeft": 91,
+            "Backslash": 92,
+            "BracketRight": 93,
+            "Backquote": 96,
+            "IntlBackslash": 162,
+
+            "Escape": 256,
+            "Enter": 257,
+            "Tab": 258,
+            "Backspace": 259,
+            "Insert": 260,
+            "Delete": 261,
+            "ArrowRight": 262,
+            "ArrowLeft": 263,
+            "ArrowDown": 264,
+            "ArrowUp": 265,
+            "PageUp": 266,
+            "PageDown": 267,
+            "Home": 268,
+            "End": 269,
+            "CapsLock": 280,
+            "ScrollLock": 281,
+            "NumLock": 282,
+            "PrintScreen": 283,
+            "Pause": 284,
+            "F1": 290,
+            "F2": 291,
+            "F3": 292,
+            "F4": 293,
+            "F5": 294,
+            "F6": 295,
+            "F7": 296,
+            "F8": 297,
+            "F9": 298,
+            "F10": 299,
+            "F11": 300,
+            "F12": 301,
+            "F13": 302,
+            "F14": 303,
+            "F15": 304,
+            "F16": 305,
+            "F17": 306,
+            "F18": 307,
+            "F19": 308,
+            "F20": 309,
+            "F21": 310,
+            "F22": 311,
+            "F23": 312,
+            "F24": 313,
+            "F25": 314,
+            "Numpad0": 320,
+            "Numpad1": 321,
+            "Numpad2": 322,
+            "Numpad3": 323,
+            "Numpad4": 324,
+            "Numpad5": 325,
+            "Numpad6": 326,
+            "Numpad7": 327,
+            "Numpad8": 328,
+            "Numpad9": 329,
+            "NumpadDecimal": 330,
+            "NumpadComma": 330,
+            "NumpadDivide": 331,
+            "NumpadMultiply": 332,
+            "NumpadSubtract": 333,
+            "NumpadAdd": 334,
+            "NumpadEnter": 335,
+            "NumpadEqual": 336,
+            "ShiftLeft": 340,
+            "ControlLeft": 341,
+            "AltLeft": 342,
+            "MetaLeft": 343,
+            "ShiftRight": 344,
+            "ControlRight": 345,
+            "AltRight": 346,
+            "MetaRight": 347,
+            "ContextMenu": 348
+    };
+})
+
+//-------------------------------------
+EM_EXPORT void
+reverse_color_channels(uint8_t *src, uint8_t *dst, int width, int height) {
+    size_t num_bytes = (size_t) width * (size_t) height * 4;
+    for (size_t i = 0; i < num_bytes; i += 4) {
+        uint8_t b = src[i];
+        uint8_t g = src[i + 1];
+        uint8_t r = src[i + 2];
+        uint8_t a = src[i + 3];
+        dst[i] = r;
+        dst[i + 1] = g;
+        dst[i + 2] = b;
+        dst[i + 3] = a;
+    }
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_mouse_pos(SWindowData *window_data, int x, int y) {
+    if (!window_data) return;
+    window_data->mouse_pos_x = x;
+    window_data->mouse_pos_y = y;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_mouse_wheel(SWindowData *window_data, float x, float y) {
+    if (!window_data) return;
+    window_data->mouse_wheel_x = x;
+    window_data->mouse_wheel_y = y;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_mouse_button(SWindowData *window_data, uint8_t button, bool is_pressed) {
+    if (!window_data) return;
+    if (button > 7) return;
+    window_data->mouse_button_status[button] = is_pressed;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_key(SWindowData *window_data, unsigned key, bool is_pressed) {
+    if (!window_data) return;
+    if (key >= 512) return;
+    window_data->key_status[key] = is_pressed;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_mod_keys(SWindowData *window_data, uint32_t mod) {
+    if (!window_data) return;
+    window_data->mod_keys = mod;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_active(SWindowData *window_data, bool is_active) {
+    if (!window_data) return;
+    window_data->is_active = is_active;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_set_buffer_size(SWindowData *window_data, unsigned width, unsigned height) {
+    uint32_t buffer_stride = 0;
+
+    if (!window_data) return;
+    if (!calculate_buffer_layout(width, height, &buffer_stride, NULL)) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: invalid buffer size %ux%u.", width, height);
+        window_data->buffer_width = 0;
+        window_data->buffer_height = 0;
+        window_data->buffer_stride = 0;
+        return;
+    }
+    window_data->buffer_width = width;
+    window_data->buffer_height = height;
+    window_data->buffer_stride = buffer_stride;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_update_window_size(SWindowData *window_data, unsigned width, unsigned height) {
+    if (!window_data || width == 0 || height == 0) return;
+
+    bool changed = (window_data->window_width != width) || (window_data->window_height != height);
+    window_data->window_width = width;
+    window_data->window_height = height;
+
+    if (window_data->dst_width == 0 || window_data->dst_height == 0) {
+        window_data->dst_offset_x = 0;
+        window_data->dst_offset_y = 0;
+        window_data->dst_width = width;
+        window_data->dst_height = height;
+        calc_dst_factor(window_data, width, height);
+    }
+    else if (changed) {
+        resize_dst(window_data, width, height);
+    }
+
+    if (changed && window_data->resize_func) {
+        window_data->resize_func((struct mfb_window *) window_data, (int) width, (int) height);
+    }
+}
+
+//-------------------------------------
+EM_EXPORT void *
+window_data_get_specific(SWindowData *window_data) {
+    SWindowData_Web *window_data_specific = mfb_web_get_data(window_data);
+    if (window_data_specific == NULL) return 0;
+    return (void *) window_data_specific->window_id;
+}
+
+//-------------------------------------
+EM_EXPORT uint8_t *
+window_data_get_swizzle_buffer(SWindowData *window_data, unsigned width, unsigned height) {
+    return mfb_web_ensure_swizzle_buffer(window_data, width, height);
+}
+
+//-------------------------------------
+EM_EXPORT unsigned
+window_data_get_dst_offset_x(SWindowData *window_data) {
+    if (!window_data) return 0;
+    return window_data->dst_offset_x;
+}
+
+//-------------------------------------
+EM_EXPORT unsigned
+window_data_get_dst_offset_y(SWindowData *window_data) {
+    if (!window_data) return 0;
+    return window_data->dst_offset_y;
+}
+
+//-------------------------------------
+EM_EXPORT unsigned
+window_data_get_dst_width(SWindowData *window_data) {
+    if (!window_data) return 0;
+    return window_data->dst_width;
+}
+
+//-------------------------------------
+EM_EXPORT unsigned
+window_data_get_dst_height(SWindowData *window_data) {
+    if (!window_data) return 0;
+    return window_data->dst_height;
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_active_func(SWindowData *window_data, bool is_active, uint32_t lock_keys) {
+    if (window_data == NULL) return;
+    window_data->is_active = is_active;
+    kCall(active_func, is_active);
+
+    if (is_active == false) {
+        mfb_release_held_keys(window_data, lock_keys);
+        window_data->mod_keys = lock_keys & (uint32_t) (MFB_KB_MOD_CAPS_LOCK |
+                                                       MFB_KB_MOD_NUM_LOCK);
+    }
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_resize_func(SWindowData *window_data, int width, int height) {
+    if (window_data == NULL) return;
+    if (window_data->resize_func) window_data->resize_func((struct mfb_window *) window_data, width, height);
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_close_func(SWindowData *window_data) {
+    if (window_data == NULL) return;
+    if (window_data->close_func) window_data->close_func((struct mfb_window *) window_data);
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_keyboard_func(SWindowData *window_data, mfb_key key, mfb_key_mod mod, bool is_pressed) {
+    if (window_data == NULL) return;
+    if ((int) key < 0 || (unsigned) key > (unsigned) MFB_KB_KEY_LAST) return;
+    if (is_pressed == false && window_data->key_status[(unsigned) key] == 0) return;
+
+    window_data_set_key(window_data, (unsigned) key, is_pressed);
+    uint32_t effective_mods = mfb_recalc_mod_keys(window_data, (uint32_t) mod);
+    kCall(keyboard_func, key, (mfb_key_mod) effective_mods, is_pressed);
+}
+
+//-------------------------------------
+// A browser can report a modifier with no code at all. Windows does it for every event once
+// both Shift keys are down, and the release that follows arrives just as nameless, so a key
+// still marked as held while the browser says its modifier is up has lost that release and
+// would stay pressed for good.
+EM_EXPORT void
+window_data_sync_mod_keys(SWindowData *window_data, uint32_t platform_mods) {
+    static const struct {
+        uint32_t bit;
+        unsigned sides[2];
+    } modifiers[] = {
+        { MFB_KB_MOD_SHIFT,   { MFB_KB_KEY_LEFT_SHIFT,   MFB_KB_KEY_RIGHT_SHIFT   } },
+        { MFB_KB_MOD_CONTROL, { MFB_KB_KEY_LEFT_CONTROL, MFB_KB_KEY_RIGHT_CONTROL } },
+        { MFB_KB_MOD_ALT,     { MFB_KB_KEY_LEFT_ALT,     MFB_KB_KEY_RIGHT_ALT     } },
+        { MFB_KB_MOD_SUPER,   { MFB_KB_KEY_LEFT_SUPER,   MFB_KB_KEY_RIGHT_SUPER   } },
+    };
+
+    if (window_data == NULL) return;
+
+    for (unsigned modifier = 0; modifier < sizeof(modifiers) / sizeof(modifiers[0]); ++modifier) {
+        if ((platform_mods & modifiers[modifier].bit) != 0) {
+            continue;
+        }
+
+        for (unsigned side = 0; side < 2; ++side) {
+            unsigned key = modifiers[modifier].sides[side];
+            if (window_data->key_status[key] == 0) {
+                continue;
+            }
+
+            window_data->key_status[key] = 0;
+            uint32_t effective_mods = mfb_recalc_mod_keys(window_data, platform_mods);
+            kCall(keyboard_func, (mfb_key) key, (mfb_key_mod) effective_mods, false);
+        }
+    }
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_char_input_func(SWindowData *window_data, unsigned int code) {
+    if (window_data == NULL) return;
+    mfb_dispatch_char_input(window_data, code);
+}
+
+//-------------------------------------
+// The listeners only queue: applying the state here keeps the getters agreeing with the
+// event the callback is being handed, instead of running ahead to the newest one.
+//-------------------------------------
+EM_EXPORT void
+window_data_call_mouse_btn_func(SWindowData *window_data, mfb_mouse_button button, mfb_key_mod mod, bool is_pressed, int x, int y) {
+    if (window_data == NULL) return;
+    window_data_set_mouse_pos(window_data, x, y);
+    window_data_set_mouse_button(window_data, (uint8_t) button, is_pressed);
+    // The browser reports only what the layout calls a modifier, and AltGr is not one.
+    uint32_t effective_mods = mfb_recalc_mod_keys(window_data, (uint32_t) mod);
+    if (window_data->mouse_btn_func) window_data->mouse_btn_func((struct mfb_window *) window_data, button, (mfb_key_mod) effective_mods, is_pressed);
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_mouse_move_func(SWindowData *window_data, int x, int y) {
+    if (window_data == NULL) return;
+    window_data_set_mouse_pos(window_data, x, y);
+    if (window_data->mouse_move_func) window_data->mouse_move_func((struct mfb_window *) window_data, x, y);
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_mouse_wheel_func(SWindowData *window_data, mfb_key_mod mod, float x, float y) {
+    if (window_data == NULL) return;
+    window_data_set_mouse_wheel(window_data, x, y);
+    uint32_t effective_mods = mfb_recalc_mod_keys(window_data, (uint32_t) mod);
+    if (window_data->mouse_wheel_func) window_data->mouse_wheel_func((struct mfb_window *) window_data, (mfb_key_mod) effective_mods, x, y);
+}
+
+//-------------------------------------
+// A cancelled pointer never delivers a release to the canvas or the body, the two places
+// button state is tracked from, so whatever it left pressed stays pressed unless it is
+// released here.
+EM_EXPORT void
+window_data_release_mouse_buttons(SWindowData *window_data) {
+    if (window_data == NULL) return;
+
+    for (uint32_t button = 0; button < MFB_MAX_MOUSE_BUTTONS; ++button) {
+        if (window_data->mouse_button_status[button] != 0) {
+            window_data->mouse_button_status[button] = 0;
+            kCall(mouse_btn_func, (mfb_mouse_button) button, (mfb_key_mod) window_data->mod_keys, false);
+        }
+    }
+}
+
+//-------------------------------------
+EM_EXPORT void
+window_data_call_mouse_enter_func(SWindowData *window_data, bool is_inside) {
+    if (window_data == NULL) return;
+    // The event queue drops its oldest entries when it overflows, so compare
+    // against the stored state instead of trusting the events to alternate.
+    if (window_data->is_mouse_inside == is_inside) return;
+    window_data->is_mouse_inside = is_inside;
+    kCall(mouse_enter_func, is_inside);
+}
+
+//-------------------------------------
+EM_EXPORT bool
+window_data_get_close(SWindowData *window_data) {
+    if (!window_data) return true;
+    return window_data->close;
+}
+
+//-------------------------------------
+EM_JS(int, mfb_canvas_exists_js, (const char *title), {
+    let canvas = document.getElementById(UTF8ToString(title));
+    return canvas ? 1 : 0;
+});
+
+//-------------------------------------
+EM_JS(void *, mfb_open_ex_js,(SWindowData *window_data, const char *title, unsigned width, unsigned height, int wants_full_screen, int wants_resizable), {
+    let canvasId = UTF8ToString(title);
+    let canvas = document.getElementById(canvasId);
+    if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.id = canvasId;
+        if (document.body) {
+            document.body.appendChild(canvas);
+        }
+        else if (document.documentElement) {
+            document.documentElement.appendChild(canvas);
+        }
+        else {
+            return 0;
+        }
+    }
+
+    if (!window._minifb) {
+        window._minifb = {
+            nextId: 1,
+            windows: [],
+        };
+    }
+
+    const MAX_QUEUED_EVENTS = 2048;
+    const NON_PASSIVE = { passive: false };
+    const MFB_KB_MOD_SHIFT     = 0x0001;
+    const MFB_KB_MOD_CONTROL   = 0x0002;
+    const MFB_KB_MOD_ALT       = 0x0004;
+    const MFB_KB_MOD_SUPER     = 0x0008;
+    const MFB_KB_MOD_CAPS_LOCK = 0x0010;
+    const MFB_KB_MOD_NUM_LOCK  = 0x0020;
+
+    let id = window._minifb.nextId++;
+    canvas.width = width;
+    canvas.height = height;
+    if (!canvas.style.width && !canvas.style.height) {
+         canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+    }
+    if (!canvas.style["image-rendering"]) canvas.style["image-rendering"] = "pixelated";
+    if (!canvas.style["user-select"]) canvas.style["user-select"] = "none";
+    if (!canvas.style["touch-action"]) canvas.style["touch-action"] = "none";
+    if (!canvas.style["border"]) canvas.style["border"] = "none";
+    if (!canvas.style["outline-style"]) canvas.style["outline-style"] = "none";
+    canvas.tabIndex = -1;
+
+    let ctx = canvas.getContext("2d");
+    if (!ctx) return 0;
+
+    let textInput = document.createElement("textarea");
+    textInput.tabIndex = -1;
+    textInput.setAttribute("autocomplete", "off");
+    textInput.setAttribute("autocapitalize", "off");
+    textInput.setAttribute("spellcheck", "false");
+    textInput.setAttribute("aria-label", "MiniFB text input");
+    textInput.style.position = "fixed";
+    textInput.style.left = "0";
+    textInput.style.top = "0";
+    textInput.style.width = "1px";
+    textInput.style.height = "1px";
+    textInput.style.padding = "0";
+    textInput.style.border = "0";
+    textInput.style.outline = "0";
+    textInput.style.opacity = "0";
+    textInput.style.overflow = "hidden";
+    textInput.style.resize = "none";
+    textInput.style.pointerEvents = "none";
+    canvas.parentNode.insertBefore(textInput, canvas.nextSibling);
+
+    let w = {
+        id: id,
+        canvas: canvas,
+        textInput: textInput,
+        ctx: ctx,
+        backCanvas: null,
+        backCtx: null,
+        window_data: window_data,
+        wants_full_screen: wants_full_screen !== 0,
+        resizable: wants_resizable !== 0,
+        resizeObserver: null,
+        activeTouchId: null,
+        globalMouseupTarget: null,
+        // The queued events carry the state, so the listeners keep only what they need to
+        // answer "is this release mine?" and "where was the pointer last?".
+        pressedButtons: {},
+        lastPos: { x: 0, y: 0 },
+        lastModKeys: 0,
+        isComposing: false,
+        compositionCommit: null,
+        is_active: false,
+        handlers: {},
+        events: []
+    };
+
+    Module._window_data_update_window_size(window_data, canvas.width, canvas.height);
+
+    function toMfbCode(code) {
+        let keyMap = window._minifb.keyMap;
+        return keyMap && keyMap[code] !== undefined ? keyMap[code] : -1;
+    }
+
+    function enqueueEvent(eventObj) {
+        if (w.events.length >= MAX_QUEUED_EVENTS) {
+            // Dropped in order of what it costs: movement and resize lose nothing because
+            // the next one carries the current state, a scroll loses its delta. A button
+            // transition, a cancel or a crossing is never dropped, since losing one leaves a
+            // button held forever or a release nobody pressed, so the cap gives instead.
+            let droppable = w.events.findIndex((e) => e.type === "mousemove" || e.type === "resize");
+            if (droppable < 0) {
+                droppable = w.events.findIndex((e) => e.type === "mousescroll");
+            }
+            if (droppable >= 0) {
+                w.events.splice(droppable, 1);
+            }
+        }
+        w.events.push(eventObj);
+    }
+
+    // A resizable canvas is sized by the page CSS, so the drawing buffer has to
+    // follow the layout box. Scaling by devicePixelRatio keeps it sharp on HiDPI.
+    function syncCanvasBackingSize() {
+        const dpr = window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
+        const cw = Math.max(1, Math.round(canvas.clientWidth * dpr));
+        const ch = Math.max(1, Math.round(canvas.clientHeight * dpr));
+        if (canvas.width === cw && canvas.height === ch) {
+            return false;
+        }
+        canvas.width = cw;
+        canvas.height = ch;
+        return true;
+    }
+    w.syncCanvasBackingSize = syncCanvasBackingSize;
+
+    function requestFullscreenIfNeeded() {
+        if (!w.wants_full_screen) return;
+        w.wants_full_screen = false;
+        if (canvas.requestFullscreen) {
+            canvas.requestFullscreen().catch(function() {});
+        }
+    }
+
+    function shouldPreventDefaultKey(code) {
+        return code === "ArrowUp" ||
+               code === "ArrowDown" ||
+               code === "ArrowLeft" ||
+               code === "ArrowRight" ||
+               code === "PageUp" ||
+               code === "PageDown" ||
+               code === "Home" ||
+               code === "End" ||
+               code === "Enter" ||
+               code === "NumpadEnter" ||
+               code === "Tab";
+    }
+
+    function hasKeyboardFocus() {
+        let activeElement = document.activeElement;
+        let documentHasFocus = typeof document.hasFocus !== "function" || document.hasFocus();
+        return document.hidden !== true && documentHasFocus &&
+               (activeElement === canvas || activeElement === textInput);
+    }
+
+    function setActive(is_active) {
+        if (w.is_active === is_active) return;
+        w.is_active = is_active;
+        let lockMods = w.lastModKeys & (MFB_KB_MOD_CAPS_LOCK | MFB_KB_MOD_NUM_LOCK);
+        enqueueEvent({ type: "active", is_active: is_active, lock_mods: lockMods });
+        if (is_active === false) {
+            w.lastModKeys = lockMods;
+            w.isComposing = false;
+            w.compositionCommit = null;
+            textInput.value = "";
+        }
+    }
+
+    function updateActive() {
+        setActive(hasKeyboardFocus());
+    }
+
+    function focusTextInput() {
+        if (document.activeElement !== textInput) {
+            textInput.focus();
+        }
+    }
+
+    function getMousePos(event) {
+        let rect = canvas.getBoundingClientRect();
+        let pos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        let clientWidth = canvas.clientWidth > 0 ? canvas.clientWidth : canvas.width;
+        let clientHeight = canvas.clientHeight > 0 ? canvas.clientHeight : canvas.height;
+        pos.x = pos.x / clientWidth * canvas.width;
+        pos.y = pos.y / clientHeight * canvas.height;
+        return pos;
+    };
+
+    // JS: 0=left, 1=middle, 2=right
+    // MFB: 1=left(BTN_1), 2=right(BTN_2), 3=middle(BTN_3)
+    function mapMouseButton(jsButton) {
+        const map = [1, 3, 2];
+        return jsButton < map.length ? map[jsButton] : jsButton + 1;
+    }
+
+    function getMfbKeyModFromEvent(event) {
+        let mod = 0;
+        if (event.shiftKey) mod = mod | MFB_KB_MOD_SHIFT;
+        if (event.ctrlKey) mod = mod | MFB_KB_MOD_CONTROL;
+        if (event.altKey) mod = mod | MFB_KB_MOD_ALT;
+        if (event.metaKey) mod = mod | MFB_KB_MOD_SUPER;
+        if (event.getModifierState && event.getModifierState("CapsLock")) mod = mod | MFB_KB_MOD_CAPS_LOCK;
+        if (event.getModifierState && event.getModifierState("NumLock"))  mod = mod | MFB_KB_MOD_NUM_LOCK;
+        w.lastModKeys = mod;
+        return mod;
+    };
+
+    function enqueueText(text) {
+        if (typeof text !== "string" || text.length === 0) return;
+        enqueueEvent({ type: "text", text: text });
+    }
+
+    w.handlers.keydown = function(event) {
+        if (shouldPreventDefaultKey(event.code)) {
+            event.preventDefault();
+        }
+        w.compositionCommit = null;
+        let code = toMfbCode(event.code);
+        let mod = getMfbKeyModFromEvent(event);
+        if (code < 0) {
+            enqueueEvent({ type: "modsync", mod: mod });
+            return;
+        }
+        enqueueEvent({ type: "keydown", code: code, mod: mod, time: event.timeStamp });
+    };
+    canvas.addEventListener("keydown", w.handlers.keydown);
+    textInput.addEventListener("keydown", w.handlers.keydown);
+
+    w.handlers.keyup = function(event) {
+        if (shouldPreventDefaultKey(event.code)) {
+            event.preventDefault();
+        }
+        let code = toMfbCode(event.code);
+        let mod = getMfbKeyModFromEvent(event);
+        if (code < 0) {
+            enqueueEvent({ type: "modsync", mod: mod });
+            return;
+        }
+        enqueueEvent({ type: "keyup", code: code, mod: mod, time: event.timeStamp });
+    };
+    canvas.addEventListener("keyup", w.handlers.keyup);
+    textInput.addEventListener("keyup", w.handlers.keyup);
+
+    w.handlers.input = function(event) {
+        if (w.is_active === false) {
+            textInput.value = "";
+            return;
+        }
+        if (w.isComposing === true || event.isComposing === true) return;
+
+        let text = typeof event.data === "string" ? event.data : textInput.value;
+        if (w.compositionCommit !== null) {
+            let compositionCommit = w.compositionCommit;
+            w.compositionCommit = null;
+            textInput.value = "";
+            if (text === compositionCommit) return;
+        }
+
+        enqueueText(text);
+        textInput.value = "";
+    };
+    textInput.addEventListener("input", w.handlers.input);
+
+    w.handlers.compositionStart = function() {
+        w.isComposing = true;
+        w.compositionCommit = null;
+    };
+    textInput.addEventListener("compositionstart", w.handlers.compositionStart);
+
+    w.handlers.compositionEnd = function(event) {
+        w.isComposing = false;
+        if (w.is_active === false) {
+            w.compositionCommit = null;
+            textInput.value = "";
+            return;
+        }
+        let text = typeof event.data === "string" ? event.data : textInput.value;
+        textInput.value = "";
+        if (text.length === 0) {
+            w.compositionCommit = null;
+            return;
+        }
+
+        w.compositionCommit = text;
+        enqueueText(text);
+    };
+    textInput.addEventListener("compositionend", w.handlers.compositionEnd);
+
+    w.handlers.canvasFocus = function() {
+        focusTextInput();
+    };
+    canvas.addEventListener("focus", w.handlers.canvasFocus);
+
+    w.handlers.canvasBlur = function(event) {
+        if (event.relatedTarget !== textInput) {
+            setActive(false);
+        }
+    };
+    canvas.addEventListener("blur", w.handlers.canvasBlur);
+
+    w.handlers.textInputFocus = function() {
+        updateActive();
+    };
+    textInput.addEventListener("focus", w.handlers.textInputFocus);
+
+    w.handlers.textInputBlur = function(event) {
+        if (event.relatedTarget !== canvas) {
+            setActive(false);
+        }
+    };
+    textInput.addEventListener("blur", w.handlers.textInputBlur);
+
+    w.handlers.windowFocus = function() {
+        updateActive();
+    };
+    window.addEventListener("focus", w.handlers.windowFocus);
+
+    w.handlers.windowBlur = function() {
+        setActive(false);
+    };
+    window.addEventListener("blur", w.handlers.windowBlur);
+
+    w.handlers.visibilityChange = function() {
+        if (document.hidden === true) {
+            setActive(false);
+        }
+        else {
+            updateActive();
+        }
+    };
+    document.addEventListener("visibilitychange", w.handlers.visibilityChange);
+
+    w.handlers.fullscreenChange = function() {
+        if (document.fullscreenElement === canvas) {
+            focusTextInput();
+        }
+        updateActive();
+    };
+    document.addEventListener("fullscreenchange", w.handlers.fullscreenChange);
+
+    w.handlers.contextmenu = (event) => { event.preventDefault(); };
+    canvas.addEventListener("contextmenu", w.handlers.contextmenu);
+
+    w.handlers.mousedown = (event) => {
+            if (event.button > 6) return;
+            event.preventDefault();
+            focusTextInput();
+            requestFullscreenIfNeeded();
+            let pos = getMousePos(event);
+            let mod = getMfbKeyModFromEvent(event);
+            let btn = mapMouseButton(event.button);
+            w.pressedButtons[btn] = true;
+            w.lastPos = pos;
+            enqueueEvent({ type: "mousebutton", button: btn, mod: mod, is_pressed: true, x: pos.x, y: pos.y});
+    };
+    canvas.addEventListener("mousedown", w.handlers.mousedown, false);
+
+    w.handlers.mousemove = (event) => {
+            let pos = getMousePos(event);
+            w.lastPos = pos;
+            enqueueEvent({ type: "mousemove", x: pos.x, y: pos.y});
+    };
+    canvas.addEventListener("mousemove", w.handlers.mousemove, false);
+
+    w.handlers.mouseup = (event) => {
+            if (event.button > 6) return;
+            let btn = mapMouseButton(event.button);
+            // Pressing outside the canvas and releasing over it targets this element, so a
+            // release is only ours when this window is the one holding that button.
+            if (w.pressedButtons[btn] !== true) return;
+            let pos = getMousePos(event);
+            let mod = getMfbKeyModFromEvent(event);
+            w.pressedButtons[btn] = false;
+            w.lastPos = pos;
+            enqueueEvent({ type: "mousebutton", button: btn, mod: mod, is_pressed: false, x: pos.x, y: pos.y});
+    };
+    canvas.addEventListener("mouseup", w.handlers.mouseup, false);
+
+    w.handlers.bodyMouseup = (event) => {
+            if (event.button > 6) return;
+            if (event.target === canvas) return;  // already handled by canvas mouseup
+            let btn = mapMouseButton(event.button);
+            // Only the buttons this window is holding are reported. The position is left
+            // alone: it would be relative to a canvas the pointer was never over.
+            if (w.pressedButtons[btn] !== true) return;
+            w.pressedButtons[btn] = false;
+            let mod = getMfbKeyModFromEvent(event);
+            enqueueEvent({ type: "mousebutton", button: btn, mod: mod, is_pressed: false, x: w.lastPos.x, y: w.lastPos.y});
+    };
+    w.globalMouseupTarget = document.body || document.documentElement || document;
+    if (w.globalMouseupTarget) {
+        w.globalMouseupTarget.addEventListener("mouseup", w.handlers.bodyMouseup, false);
+    }
+
+    // Touch is ignored: a tap fires enter/leave around every contact and touch
+    // input already goes through the touch handlers, so there is no cursor
+    // hovering the canvas to report. pointercancel counts as a leave because
+    // the pointer stream ends there and the matching leave may never arrive.
+    // Capturing the pointer keeps the canvas as its target while a button is held, so no
+    // leave is reported until the drag ends. The browser releases the capture on pointerup
+    // and only then reports the leave, if the pointer ended up outside.
+    w.handlers.pointerDown = (event) => {
+        if (event.pointerType === "touch") return;
+        try {
+            canvas.setPointerCapture(event.pointerId);
+        }
+        catch (e) {
+            // The pointer is already gone; nothing to capture.
+        }
+    };
+    canvas.addEventListener("pointerdown", w.handlers.pointerDown);
+
+    w.handlers.pointerEnterOrLeave = (event) => {
+        if (event.pointerType === "touch") return;
+        if (event.type === "pointercancel") {
+            // The C side drops every held button, so the bookkeeping here has to agree or
+            // a later release elsewhere in the document would be forwarded for nothing.
+            w.pressedButtons = {};
+            enqueueEvent({ type: "mousecancel" });
+        }
+        enqueueEvent({ type: "mouseenter", is_inside: event.type === "pointerenter" });
+    };
+    canvas.addEventListener("pointerenter", w.handlers.pointerEnterOrLeave);
+    canvas.addEventListener("pointerleave", w.handlers.pointerEnterOrLeave);
+    canvas.addEventListener("pointercancel", w.handlers.pointerEnterOrLeave);
+
+    w.handlers.wheel = (event) => {
+            event.preventDefault();
+            let mod = getMfbKeyModFromEvent(event);
+            let dx = event.deltaX;
+            let dy = event.deltaY;
+            if (event.deltaMode === 0) {
+                // DOM_DELTA_PIXEL (Chrome default): normalize to ~1.0 per notch
+                dx /= 100.0;
+                dy /= 100.0;
+            }
+            else if (event.deltaMode === 2) {
+                // DOM_DELTA_PAGE: convert pages to notches
+                dx *= 3.0;
+                dy *= 3.0;
+            }
+            // DOM_DELTA_LINE (mode 1, Firefox default): already ~1-3 per notch, pass through
+
+            // The browser counts down and right as positive, MiniFB counts up and left.
+            dx = -dx;
+            dy = -dy;
+            // The end of a momentum scroll arrives as a wheel event that moved nothing.
+            if (dx === 0 && dy === 0) {
+                return;
+            }
+            enqueueEvent({ type: "mousescroll", mod: mod, x: dx, y: dy});
+    };
+    canvas.addEventListener('wheel', w.handlers.wheel, NON_PASSIVE);
+
+    w.handlers.touchstart = (event) => {
+            if (w.activeTouchId === null) {
+                focusTextInput();
+                requestFullscreenIfNeeded();
+                let touch = event.changedTouches[0];
+                let pos = getMousePos(touch);
+                w.activeTouchId = touch.identifier;
+                w.pressedButtons[1] = true;
+                w.lastPos = pos;
+                enqueueEvent({ type: "mousebutton", button: 1, mod: 0, is_pressed: true, x: pos.x, y: pos.y});
+            }
+            event.preventDefault();
+    };
+    canvas.addEventListener("touchstart", w.handlers.touchstart, NON_PASSIVE);
+
+    w.handlers.touchmove = (event) => {
+            if (w.activeTouchId != null) {
+                for (let i = 0; i < event.changedTouches.length; i++) {
+                    let touch = event.changedTouches[i];
+                    if (w.activeTouchId === touch.identifier) {
+                        let pos = getMousePos(touch);
+                        w.lastPos = pos;
+                        enqueueEvent({ type: "mousemove", x: pos.x, y: pos.y});
+                        break;
+                    }
+                }
+            }
+            event.preventDefault();
+    };
+    canvas.addEventListener("touchmove", w.handlers.touchmove, NON_PASSIVE);
+
+    w.handlers.touchEndOrCancel = (event) => {
+        if (w.activeTouchId != null) {
+            for (let i = 0; i < event.changedTouches.length; i++) {
+                let touch = event.changedTouches[i];
+                if (w.activeTouchId === touch.identifier) {
+                    let pos = getMousePos(touch);
+                    w.activeTouchId = null;
+                    w.pressedButtons[1] = false;
+                    w.lastPos = pos;
+                    enqueueEvent({ type: "mousebutton", button: 1, mod: 0, is_pressed: false, x: pos.x, y: pos.y});
+                    break;
+                }
+            }
+        }
+        event.preventDefault();
+    };
+    canvas.addEventListener("touchend", w.handlers.touchEndOrCancel, NON_PASSIVE);
+    canvas.addEventListener("touchcancel", w.handlers.touchEndOrCancel, NON_PASSIVE);
+
+    if (w.resizable === true && typeof ResizeObserver !== "undefined") {
+        w.resizeObserver = new ResizeObserver(() => {
+            enqueueEvent({ type: "resize" });
+        });
+        w.resizeObserver.observe(canvas);
+    }
+
+    w.is_active = hasKeyboardFocus();
+    if (document.activeElement === canvas) {
+        focusTextInput();
+    }
+    w.is_active = hasKeyboardFocus();
+    Module._window_data_set_active(window_data, w.is_active ? 1 : 0);
+
+    window._minifb.windows[id] = w;
+    return id;
+});
+
+EM_JS(void, mfb_close_js, (uintptr_t window_id), {
+    if (!window._minifb || !window._minifb.windows[window_id]) return;
+    let w = window._minifb.windows[window_id];
+    if (w.handlers) {
+        w.canvas.removeEventListener("keydown", w.handlers.keydown);
+        w.canvas.removeEventListener("keyup", w.handlers.keyup);
+        w.textInput.removeEventListener("keydown", w.handlers.keydown);
+        w.textInput.removeEventListener("keyup", w.handlers.keyup);
+        w.textInput.removeEventListener("input", w.handlers.input);
+        w.textInput.removeEventListener("compositionstart", w.handlers.compositionStart);
+        w.textInput.removeEventListener("compositionend", w.handlers.compositionEnd);
+        w.canvas.removeEventListener("focus", w.handlers.canvasFocus);
+        w.canvas.removeEventListener("blur", w.handlers.canvasBlur);
+        w.textInput.removeEventListener("focus", w.handlers.textInputFocus);
+        w.textInput.removeEventListener("blur", w.handlers.textInputBlur);
+        window.removeEventListener("focus", w.handlers.windowFocus);
+        window.removeEventListener("blur", w.handlers.windowBlur);
+        document.removeEventListener("visibilitychange", w.handlers.visibilityChange);
+        document.removeEventListener("fullscreenchange", w.handlers.fullscreenChange);
+        w.canvas.removeEventListener("mousedown", w.handlers.mousedown, false);
+        w.canvas.removeEventListener("mousemove", w.handlers.mousemove, false);
+        w.canvas.removeEventListener("mouseup", w.handlers.mouseup, false);
+        if (w.globalMouseupTarget) {
+            w.globalMouseupTarget.removeEventListener("mouseup", w.handlers.bodyMouseup, false);
+        }
+        w.canvas.removeEventListener("contextmenu", w.handlers.contextmenu);
+        w.canvas.removeEventListener("pointerdown", w.handlers.pointerDown);
+        w.canvas.removeEventListener("pointerenter", w.handlers.pointerEnterOrLeave);
+        w.canvas.removeEventListener("pointerleave", w.handlers.pointerEnterOrLeave);
+        w.canvas.removeEventListener("pointercancel", w.handlers.pointerEnterOrLeave);
+        w.canvas.removeEventListener("wheel", w.handlers.wheel, false);
+        w.canvas.removeEventListener("touchstart", w.handlers.touchstart, false);
+        w.canvas.removeEventListener("touchmove", w.handlers.touchmove, false);
+        w.canvas.removeEventListener("touchend", w.handlers.touchEndOrCancel, false);
+        w.canvas.removeEventListener("touchcancel", w.handlers.touchEndOrCancel, false);
+    }
+    if (w.resizeObserver) {
+        w.resizeObserver.disconnect();
+        w.resizeObserver = null;
+    }
+    if (w.textInput && w.textInput.parentNode) {
+        w.textInput.parentNode.removeChild(w.textInput);
+    }
+    delete window._minifb.windows[window_id];
+});
+
+//-------------------------------------
+static void
+destroy_window_data(SWindowData *window_data) {
+    if (window_data == NULL) {
+        return;
+    }
+
+    release_cpp_stub((struct mfb_window *) window_data);
+
+    SWindowData_Web *window_data_specific = (SWindowData_Web *) window_data->specific;
+    if (window_data_specific != NULL) {
+        if (window_data_specific->window_id != 0) {
+            mfb_close_js(window_data_specific->window_id);
+        }
+
+        free(window_data_specific->swizzle_buffer);
+    }
+
+    mfb_free_window_data(window_data, sizeof(SWindowData_Web));
+}
+
+//-------------------------------------
+struct mfb_window *
+mfb_open_ex(const char *title, unsigned width, unsigned height, unsigned flags) {
+    const unsigned supported_flags = MFB_WF_FULLSCREEN | MFB_WF_FULLSCREEN_DESKTOP | MFB_WF_RESIZABLE;
+    unsigned effective_flags = flags;
+    const char *window_title = (title != NULL && title[0] != '\0') ? title : "minifb";
+    uint32_t buffer_stride = 0;
+    SWindowData *window_data;
+
+    if (!calculate_buffer_layout(width, height, &buffer_stride, NULL)) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: invalid window size %ux%u.", width, height);
+        return NULL;
+    }
+
+    if ((effective_flags & ~supported_flags) != 0u) {
+        MFB_LOG(MFB_LOG_WARNING, "WebMiniFB: window flags 0x%x are not supported by the web backend and will be ignored.", effective_flags & ~supported_flags);
+    }
+
+    if ((effective_flags & MFB_WF_FULLSCREEN) && (effective_flags & MFB_WF_FULLSCREEN_DESKTOP)) {
+        MFB_LOG(MFB_LOG_WARNING, "WebMiniFB: MFB_WF_FULLSCREEN and MFB_WF_FULLSCREEN_DESKTOP were both requested; MFB_WF_FULLSCREEN takes precedence.");
+        effective_flags &= ~MFB_WF_FULLSCREEN_DESKTOP;
+    }
+
+    window_data = malloc(sizeof(SWindowData));
+    if (window_data == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: failed to allocate SWindowData.");
+        return NULL;
+    }
+    memset(window_data, 0, sizeof(SWindowData));
+    mfb_store_title(window_data, window_title);
+
+    int wants_fullscreen = ((effective_flags & MFB_WF_FULLSCREEN) || (effective_flags & MFB_WF_FULLSCREEN_DESKTOP)) ? 1 : 0;
+    int wants_resizable = ((effective_flags & MFB_WF_RESIZABLE) != 0u) ? 1 : 0;
+    int canvas_existed = mfb_canvas_exists_js(window_title);
+    void *specific = mfb_open_ex_js(window_data, window_title, width, height, wants_fullscreen, wants_resizable);
+    if (!specific) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: failed to initialize JavaScript window data for title '%s'.", window_title);
+        destroy_window_data(window_data);
+        return NULL;
+    }
+    if (!canvas_existed) {
+        MFB_LOG(MFB_LOG_WARNING, "WebMiniFB: canvas with id '%s' was not found; created a new canvas and appended it to the document.", window_title);
+    }
+
+    SWindowData_Web *window_data_specific = malloc(sizeof(SWindowData_Web));
+    if (window_data_specific == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: failed to allocate SWindowData_Web.");
+        mfb_close_js((uintptr_t) specific);
+        destroy_window_data(window_data);
+        return NULL;
+    }
+    memset(window_data_specific, 0, sizeof(SWindowData_Web));
+    window_data_specific->window_id = (uintptr_t) specific;
+    window_data->specific = window_data_specific;
+
+    window_data->timer = mfb_timer_create();
+    if (window_data->timer == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: failed to create frame timer.");
+        destroy_window_data(window_data);
+        return NULL;
+    }
+
+    // setup key map if not initialized yet
+    if (!g_initialized) {
+        setup_web_mfb();
+        g_initialized = true;
+    }
+
+    mfb_set_keyboard_callback((struct mfb_window *) window_data, keyboard_default);
+
+    window_data->window_width = width;
+    window_data->window_height = height;
+    window_data->buffer_width = width;
+    window_data->buffer_height = height;
+    window_data->buffer_stride = buffer_stride;
+    window_data->dst_offset_x = 0;
+    window_data->dst_offset_y = 0;
+    window_data->dst_width = width;
+    window_data->dst_height = height;
+    calc_dst_factor(window_data, width, height);
+
+    window_data->is_initialized = true;
+    window_data->is_cursor_visible = true;
+
+    MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: window created using Web API (title='%s', size=%ux%u, flags=0x%x).",
+            window_title, width, height, flags);
+    return (struct mfb_window *) window_data;
+}
+
+//-------------------------------------
+bool
+mfb_set_viewport(struct mfb_window *window, unsigned offset_x, unsigned offset_y, unsigned width, unsigned height) {
+    SWindowData *window_data = (SWindowData *) window;
+    if (!mfb_validate_viewport(window_data, offset_x, offset_y, width, height, "WebMiniFB")) {
+        return false;
+    }
+
+    window_data->dst_offset_x = offset_x;
+    window_data->dst_offset_y = offset_y;
+    window_data->dst_width = width;
+    window_data->dst_height = height;
+    calc_dst_factor(window_data, window_data->window_width, window_data->window_height);
+
+    return true;
+}
+
+//-------------------------------------
+void
+mfb_set_title(struct mfb_window *window, const char *title) {
+    if (window == NULL || title == NULL) {
+        return;
+    }
+
+    mfb_store_title((SWindowData *) window, title);
+}
+
+//-------------------------------------
+EM_JS(mfb_update_state, mfb_update_events_js, (SWindowData * window_data), {
+    // FIXME can we make these global somehow? --pre-js maybe?
+    const MFB_STATE_OK = 0;
+    const MFB_STATE_EXIT = -1;
+    const MFB_STATE_INVALID_WINDOW = -2;
+    const MFB_STATE_INVALID_BUFFER = -3;
+    const MFB_STATE_INTERNAL_ERROR = -4;
+    const MFB_KB_KEY_LEFT_CONTROL = 341;
+    const MFB_KB_KEY_RIGHT_ALT = 346;
+    const ALT_GR_PAIR_MS = 5;
+    if (window_data == 0) return MFB_STATE_INVALID_WINDOW;
+    let window_id = Module._window_data_get_specific(window_data);
+    if (!window._minifb) return MFB_STATE_INTERNAL_ERROR;
+    if (!window._minifb.windows[window_id]) return MFB_STATE_INVALID_WINDOW;
+    let w = window._minifb.windows[window_id];
+    let events = w.events;
+    w.events = [];
+    for (let i = 0; i < events.length; i++) {
+        let event = events[i];
+        if (event.type == "active") {
+            Module._window_data_call_active_func(window_data, event.is_active ? 1 : 0, event.lock_mods);
+        }
+        else if (event.type == "mousebutton") {
+            Module._window_data_call_mouse_btn_func(window_data, event.button, event.mod, event.is_pressed ? 1 : 0, event.x, event.y);
+        }
+        else if (event.type == "mousemove") {
+            Module._window_data_call_mouse_move_func(window_data, event.x, event.y);
+        }
+        else if (event.type == "mousescroll") {
+            Module._window_data_call_mouse_wheel_func(window_data, event.mod, event.x, event.y);
+        }
+        else if (event.type == "mouseenter") {
+            Module._window_data_call_mouse_enter_func(window_data, event.is_inside ? 1 : 0);
+        }
+        else if (event.type == "mousecancel") {
+            Module._window_data_release_mouse_buttons(window_data);
+        }
+        else if (event.type == "keydown" || event.type == "keyup") {
+            // AltGr presses a left Control of its own right before the right Alt, and both
+            // reach the queue together. Windows hides that Control so AltGr arrives as one
+            // key, and this is the same lookahead its backend does with PeekMessage. That one
+            // compares GetMessageTime, which the pair shares; a browser stamps each event on
+            // its own and they land about a millisecond apart, so what identifies them is the
+            // pairing and the window only rules out two keys pressed at different times.
+            let companion = events[i + 1];
+            if (event.code == MFB_KB_KEY_LEFT_CONTROL && companion !== undefined &&
+                companion.type == event.type && companion.code == MFB_KB_KEY_RIGHT_ALT &&
+                Math.abs(companion.time - event.time) < ALT_GR_PAIR_MS) {
+                continue;
+            }
+            Module._window_data_call_keyboard_func(window_data, event.code, event.mod,
+                                                   event.type == "keydown" ? 1 : 0);
+        }
+        else if (event.type == "modsync") {
+            Module._window_data_sync_mod_keys(window_data, event.mod);
+        }
+        else if (event.type == "text") {
+            for (let j = 0; j < event.text.length; ++j) {
+                let codePoint = event.text.charCodeAt(j);
+                if (codePoint >= 0xd800 && codePoint <= 0xdbff &&
+                    j + 1 < event.text.length) {
+                    let lowSurrogate = event.text.charCodeAt(j + 1);
+                    if (lowSurrogate >= 0xdc00 && lowSurrogate <= 0xdfff) {
+                        codePoint = 0x10000 + ((codePoint - 0xd800) << 10) +
+                                    (lowSurrogate - 0xdc00);
+                        ++j;
+                    }
+                }
+                Module._window_data_call_char_input_func(window_data, codePoint);
+            }
+        }
+        else if (event.type == "resize") {
+            // Reached from mfb_update_events, which has no framebuffer to paint
+            // with, so the canvas stays blank until the application paints again.
+            // Reporting the size late instead would desync canvas.width from the
+            // window size that getMousePos uses to map pointer coordinates.
+            if (w.syncCanvasBackingSize) {
+                w.syncCanvasBackingSize();
+            }
+            Module._window_data_update_window_size(window_data, w.canvas.width, w.canvas.height);
+        }
+    }
+    return Module._window_data_get_close(window_data) ? MFB_STATE_EXIT : MFB_STATE_OK;
+});
+
+//-------------------------------------
+mfb_update_state
+mfb_update_events(struct mfb_window *window) {
+    SWindowData *window_data = (SWindowData *) window;
+    if (window_data == NULL) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_events called with an invalid window.");
+        return MFB_STATE_INVALID_WINDOW;
+    }
+    if (window_data->close) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_events aborted because the window is marked for close.");
+        destroy_window_data(window_data);
+        return MFB_STATE_EXIT;
+    }
+
+    window_data->mouse_wheel_x = 0.0f;
+    window_data->mouse_wheel_y = 0.0f;
+
+    mfb_update_state state = mfb_update_events_js(window_data);
+    if (state == MFB_STATE_EXIT) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_events detected close request after event processing.");
+        destroy_window_data(window_data);
+        return MFB_STATE_EXIT;
+    }
+    if (state == MFB_STATE_INVALID_WINDOW) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_events_js returned invalid window.");
+    }
+    else if (state == MFB_STATE_INTERNAL_ERROR) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_events_js returned internal error.");
+    }
+
+    return state;
+}
+
+//-------------------------------------
+EM_JS(mfb_update_state, mfb_update_js, (struct mfb_window * window_data, void *buffer, int width, int height), {
+    // FIXME can we make these global somehow? preamble.js maybe?
+    const MFB_STATE_OK = 0;
+    const MFB_STATE_EXIT = -1;
+    const MFB_STATE_INVALID_WINDOW = -2;
+    const MFB_STATE_INVALID_BUFFER = -3;
+    const MFB_STATE_INTERNAL_ERROR = -4;
+    if (window_data == 0) return MFB_STATE_INVALID_WINDOW;
+    let window_id = Module._window_data_get_specific(window_data);
+    if (!window._minifb) return MFB_STATE_INTERNAL_ERROR;
+    if (!window._minifb.windows[window_id]) return MFB_STATE_INVALID_WINDOW;
+    if (buffer == 0) return MFB_STATE_INVALID_BUFFER;
+    let w = window._minifb.windows[window_id];
+    let canvas = w.canvas;
+    if (width <= 0) {
+        width = canvas.width;
+        height = canvas.height;
+    }
+    else if (w.resizable === false) {
+        if (canvas.width != width) canvas.width = width;
+        if (canvas.height != height) canvas.height = height;
+    }
+    else if (w.syncCanvasBackingSize) {
+        // Resize before painting: assigning canvas.width clears the surface,
+        // so doing it afterwards would leave the frame blank until the next one.
+        w.syncCanvasBackingSize();
+    }
+    Module._window_data_update_window_size(window_data, canvas.width, canvas.height);
+    Module._window_data_set_buffer_size(window_data, width, height);
+
+    let swizzleBuffer = Module._window_data_get_swizzle_buffer(window_data, width, height);
+    if (swizzleBuffer == 0) return MFB_STATE_INTERNAL_ERROR;
+
+    Module._reverse_color_channels(buffer, swizzleBuffer, width, height);
+    let framePixels = new Uint8ClampedArray(HEAPU8.buffer, swizzleBuffer, width * height * 4);
+    let imageData = new ImageData(framePixels, width, height);
+    let dstOffsetX = Module._window_data_get_dst_offset_x(window_data);
+    let dstOffsetY = Module._window_data_get_dst_offset_y(window_data);
+    let dstWidth = Module._window_data_get_dst_width(window_data);
+    let dstHeight = Module._window_data_get_dst_height(window_data);
+    let ctx = w.ctx;
+    if (!ctx) return MFB_STATE_INTERNAL_ERROR;
+    ctx.imageSmoothingEnabled = false;
+
+    // Clear when viewport does not cover the full canvas to avoid stale pixels.
+    if (dstOffsetX !== 0 || dstOffsetY !== 0 || dstWidth !== canvas.width || dstHeight !== canvas.height) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    if (dstWidth === width && dstHeight === height) {
+        ctx.putImageData(imageData, dstOffsetX, dstOffsetY);
+    }
+    else {
+        if (!w.backCanvas || w.backCanvas.width !== width || w.backCanvas.height !== height) {
+            w.backCanvas = document.createElement("canvas");
+            w.backCanvas.width = width;
+            w.backCanvas.height = height;
+            w.backCtx = w.backCanvas.getContext("2d");
+        }
+        if (!w.backCtx) return MFB_STATE_INTERNAL_ERROR;
+        w.backCtx.putImageData(imageData, 0, 0);
+        ctx.drawImage(w.backCanvas, 0, 0, width, height, dstOffsetX, dstOffsetY, dstWidth, dstHeight);
+    }
+    return Module._window_data_get_close(window_data) ? MFB_STATE_EXIT : MFB_STATE_OK;
+});
+
+//-------------------------------------
+mfb_update_state
+mfb_update_ex(struct mfb_window *window, void *buffer, unsigned width, unsigned height) {
+    SWindowData *window_data = (SWindowData *) window;
+    if (window_data == NULL) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex called with an invalid window.");
+        return MFB_STATE_INVALID_WINDOW;
+    }
+    if (window_data->close) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex aborted because the window is marked for close.");
+        destroy_window_data(window_data);
+        return MFB_STATE_EXIT;
+    }
+
+    if (buffer == NULL) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex called with an invalid buffer.");
+        return MFB_STATE_INVALID_BUFFER;
+    }
+
+    uint32_t buffer_stride;
+    if (!calculate_buffer_layout(width, height, &buffer_stride, NULL)) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex called with invalid buffer size %ux%u.", width, height);
+        return MFB_STATE_INVALID_BUFFER;
+    }
+
+    window_data->draw_buffer   = buffer;
+    window_data->buffer_width  = width;
+    window_data->buffer_height = height;
+    window_data->buffer_stride = buffer_stride;
+
+    mfb_update_state state = mfb_update_js(window, buffer, width, height);
+    if (state == MFB_STATE_EXIT) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex detected close request after frame update.");
+        destroy_window_data(window_data);
+        return MFB_STATE_EXIT;
+    }
+    if (state != MFB_STATE_OK) {
+        if (state == MFB_STATE_INVALID_BUFFER) {
+            MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex called with an invalid buffer.");
+        }
+        else if (state == MFB_STATE_INVALID_WINDOW) {
+            MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_js reported invalid window.");
+        }
+        else if (state == MFB_STATE_INTERNAL_ERROR) {
+            MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_js reported internal error.");
+        }
+        return state;
+    }
+
+    window_data->mouse_wheel_x = 0.0f;
+    window_data->mouse_wheel_y = 0.0f;
+
+    state = mfb_update_events_js(window_data);
+    if (state == MFB_STATE_EXIT) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_update_ex detected close request after event processing.");
+        destroy_window_data(window_data);
+        return MFB_STATE_EXIT;
+    }
+    if (state == MFB_STATE_INVALID_WINDOW) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_events_js returned invalid window after frame update.");
+    }
+    else if (state == MFB_STATE_INTERNAL_ERROR) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_update_events_js returned internal error after frame update.");
+    }
+
+    return state;
+}
+
+//-------------------------------------
+extern double g_time_for_frame;
+
+//-------------------------------------
+bool
+mfb_wait_sync(struct mfb_window *window) {
+    SWindowData *window_data = (SWindowData *) window;
+    if (window_data == NULL) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_wait_sync called with an invalid window.");
+        return false;
+    }
+    if (window_data->close) {
+        MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_wait_sync aborted because the window is marked for close.");
+        destroy_window_data(window_data);
+        return false;
+    }
+
+    SWindowData_Web *window_data_specific = mfb_web_get_data(window_data);
+    if (window_data_specific == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_wait_sync missing Web-specific window data.");
+        return false;
+    }
+    if (window_data->timer == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_wait_sync missing frame timer state.");
+        return false;
+    }
+
+    bool yielded_to_browser = false;
+
+    for (;;) {
+        window_data->mouse_wheel_x = 0.0f;
+        window_data->mouse_wheel_y = 0.0f;
+
+        mfb_update_state state = mfb_update_events_js(window_data);
+        if (state == MFB_STATE_EXIT || window_data->close) {
+            MFB_LOG(MFB_LOG_DEBUG, "WebMiniFB: mfb_wait_sync detected close request while waiting for sync/events.");
+            destroy_window_data(window_data);
+            return false;
+        }
+        if (state == MFB_STATE_INVALID_WINDOW) {
+            MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_wait_sync update-events returned invalid window.");
+            return false;
+        }
+        if (state == MFB_STATE_INTERNAL_ERROR) {
+            MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_wait_sync update-events returned internal error.");
+            return false;
+        }
+
+        double elapsed_time = mfb_timer_now(window_data->timer);
+        if (elapsed_time >= g_time_for_frame) {
+            if (yielded_to_browser) {
+                break;
+            }
+
+            emscripten_sleep(0);
+            yielded_to_browser = true;
+            continue;
+        }
+
+        double remaining_ms = (g_time_for_frame - elapsed_time) * 1000.0;
+
+        if (remaining_ms > 1.5) {
+            int timeout_ms = (int) (remaining_ms - 1.0);
+            if (timeout_ms < 0) {
+                timeout_ms = 0;
+            }
+
+            emscripten_sleep((unsigned) timeout_ms);
+        }
+        else {
+            emscripten_sleep(0);
+        }
+
+        yielded_to_browser = true;
+    }
+
+    mfb_timer_compensated_reset(window_data->timer);
+    return true;
+}
+
+//-------------------------------------
+EM_JS(double, mfb_device_pixel_ratio_js, (), {
+    return (typeof window !== "undefined" && window.devicePixelRatio > 0)
+        ? window.devicePixelRatio
+        : 1.0;
+})
+
+//-------------------------------------
+void
+mfb_get_monitor_scale(struct mfb_window *window, float *scale_x, float *scale_y) {
+    kUnused(window);
+    float scale = (float) mfb_device_pixel_ratio_js();
+
+    if (scale <= 0.0f) {
+        scale = 1.0f;
+    }
+
+    if (scale_x) {
+        *scale_x = scale;
+    }
+
+    if (scale_y) {
+        *scale_y = scale;
+    }
+}
+
+//-------------------------------------
+extern double g_timer_frequency;
+extern double g_timer_resolution;
+
+//-------------------------------------
+void
+mfb_timer_init(void) {
+    g_timer_frequency  = 1e+9;
+    g_timer_resolution = 1.0 / g_timer_frequency;
+}
+
+//-------------------------------------
+EM_JS(double, mfb_timer_tick_js, (), {
+   return performance.now();
+});
+
+//-------------------------------------
+uint64_t
+mfb_timer_tick(void) {
+    uint64_t now = (uint64_t)(mfb_timer_tick_js() * 1e+6);
+    return now;
+}
+
+//-------------------------------------
+EM_JS(void, mfb_show_cursor_js, (uintptr_t window_id, int show), {
+    if (!window._minifb || !window._minifb.windows[window_id]) return;
+    window._minifb.windows[window_id].canvas.style.cursor = show ? "" : "none";
+})
+
+//-------------------------------------
+void
+mfb_show_cursor(struct mfb_window *window, bool show) {
+    SWindowData *window_data = (SWindowData *) window;
+    if (window_data == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_show_cursor called with a null window pointer.");
+        return;
+    }
+
+    window_data->is_cursor_visible = show;
+
+    SWindowData_Web *window_data_specific = mfb_web_get_data(window_data);
+    if (window_data_specific == NULL) {
+        MFB_LOG(MFB_LOG_ERROR, "WebMiniFB: mfb_show_cursor missing web-specific window data.");
+        return;
+    }
+
+    mfb_show_cursor_js(window_data_specific->window_id, show ? 1 : 0);
+}

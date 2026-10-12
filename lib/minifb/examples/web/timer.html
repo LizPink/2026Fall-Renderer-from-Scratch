@@ -1,0 +1,24 @@
+<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="./timer.js"></script>
+</head>
+<body style="background: #222; color: #bbbbbb">
+<div style="display: flex; flex-direction: column; align-items: center;">
+    <h2>Timer</h2>
+    <p>Open the development console to see log output.</p>
+    <!-- A relative canvas size is what makes the window resizable on the web:
+         the drawing buffer follows this layout box. This example reallocates its
+         framebuffer in the resize callback, so any size works without distortion. -->
+    <canvas id="Timer Test" style="background: #000; width: 90vw; height: 70vh"></canvas>
+</div>
+<script>
+    async function init() { await timer() }
+    init();
+</script>
+</body>
+</html>

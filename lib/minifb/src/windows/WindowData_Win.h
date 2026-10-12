@@ -1,0 +1,18 @@
+#pragma once
+
+#include <MiniFB_enums.h>
+//#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+typedef struct {
+    HWND                window;
+    WNDCLASSW           wc;
+    HDC                 hdc;
+#if defined(USE_OPENGL_API)
+    HGLRC               hGLRC;
+    uint32_t            text_id;
+#else
+    BITMAPINFO          *bitmap_info;
+#endif
+    WCHAR               high_surrogate;
+} SWindowData_Win;
