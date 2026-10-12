@@ -3,7 +3,7 @@ import renderer;
 
 
 int main() {
-    Renderer renderer ;
+    Renderer renderer{};
     renderer.run();
 
     return 0;
