@@ -17,6 +17,8 @@ public:
 private:
 	int myViewPortWidth = 800;
 	int myViewPortHeight = 600;
+	uint32_t* myBuffer = nullptr;
 
 	Color renderPixel(int x, int y);
+	void runRenderThread();
 };
