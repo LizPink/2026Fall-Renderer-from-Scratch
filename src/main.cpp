@@ -1,3 +1,5 @@
+/* 渲染器主程序 */
+
 import std;
 import renderer;
 

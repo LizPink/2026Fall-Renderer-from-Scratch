@@ -56,6 +56,14 @@ target_sources(
 )
 
 
+# 按 src 的实际目录结构生成 Visual Studio 筛选器
+source_group(
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PREFIX "Source Files"
+    FILES ${APP_SOURCES} ${APP_MODULES}
+)
+
+
 #[[ 为构建目标配置：第三方头文件
 	由于引用了第三方库，可能不在默认的头文件搜索路径中，这里我们需要手动将该路径加入到头文件搜索路径中
 ]]

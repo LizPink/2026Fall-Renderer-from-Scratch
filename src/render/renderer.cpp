@@ -6,11 +6,22 @@ module;
 #include <glm/glm.hpp>
 module renderer;
 
+import utils;
+
 Renderer::Renderer(int width, int height):
-/*  构造函数，用于初始化一个渲染器对象 */
+
 	myViewPortWidth(width),
 	myViewPortHeight(height)
-{}
+{
+    myCamera.initialize(
+        Vector3f(0.0f, 0.0f, 5.0f), 
+        Vector3f(0.0f, 0.0f, 0.0f),
+        Vector3f(0.0f, 1.0f, 0.0f),
+        glm::radians(45.0f),
+        0.1f, 1000.0f,
+        width, height
+    );
+}
 
 
 void Renderer::run()
@@ -49,9 +60,11 @@ void Renderer::run()
 
 Color Renderer::renderPixel(int x, int y)
 {   
+    // 生成光线
+    auto ray = myCamera.getRay(x, y);
+
     auto r = (float)x / myViewPortWidth;
     auto g = (float)y / myViewPortHeight;
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	return Color(r, g, 0.0f);
 }
 
