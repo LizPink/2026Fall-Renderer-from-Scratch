@@ -4,19 +4,30 @@ module;
 export module renderer;
 
 import camera;
+import sphere;
 using Color = glm::vec3;
 
-export class Renderer
 /**
 *	@brief 渲染器类: 承担一个渲染器的角色
 */
+export class Renderer
 {
 public:
-	/*  构造函数，用于初始化一个渲染器对象 */
-	Renderer() = default;
-	/*  构造函数，用于初始化一个渲染器对象 */
+	Renderer() = delete;
+
+	/**
+	*	@brief 构造函数，用于初始化一个渲染器对象
+	*/
 	Renderer(int width, int height);
-	virtual ~Renderer() {};
+
+	/**
+	*	@brief 析构函数
+	*/
+	virtual ~Renderer();
+
+	/**
+	*	@brief 渲染器渲染入口
+	*/
 	void run();
 
 private:
@@ -34,4 +45,7 @@ private:
 
 	// 场景摄像机
 	Camera myCamera;
+
+	// 场景物体
+	Sphere* mySphere;
 };

@@ -9,23 +9,31 @@ module renderer;
 import utils;
 
 Renderer::Renderer(int width, int height):
-
 	myViewPortWidth(width),
 	myViewPortHeight(height)
 {
+    // Initialize myCamera
     myCamera.initialize(
-        Vector3f(0.0f, 0.0f, 5.0f), 
-        Vector3f(0.0f, 0.0f, 0.0f),
+        Vector3f(0.0f, 0.0f, 0.0f), 
+        Vector3f(0.0f, 0.0f, 1.0f),
         Vector3f(0.0f, 1.0f, 0.0f),
         glm::radians(45.0f),
         0.1f, 1000.0f,
         width, height
     );
+
+    // Initialize mySphere
+    this->mySphere = new Sphere{ Vector3f{0.0f, 0.0f, 5.0f}, 1.0f};
+}
+
+
+Renderer::~Renderer()
+{
+    delete mySphere;
 }
 
 
 void Renderer::run()
-/*  让渲染器对象执行渲染操作 */
 {
     // Creating Window and RenderBuffer
     struct mfb_window* window = mfb_open_ex("Hello Render", myViewPortWidth, myViewPortHeight, MFB_WF_RESIZABLE);
@@ -40,10 +48,9 @@ void Renderer::run()
     for (int i = 0; i < numThreads; i++)
     {
         renderThreads[i] = std::thread(&Renderer::runRenderThread, this);   // 创建子线程对象（入口函数 + 调用对象）
-        renderThreads[i].detach();                                          // 分离主线程与子线程
     }
 
-    // Presenting the ViewPort
+    // 展示主线程的视口内容
     do 
     {
         mfb_update_state state = mfb_update_ex(window, myBuffer, myViewPortWidth, myViewPortHeight);
@@ -51,7 +58,14 @@ void Renderer::run()
             break;
     } while (mfb_wait_sync(window));
 
-    // Recycling the ViewPort
+
+    // 等待所有渲染子线程结束
+    for (auto& thread : renderThreads)
+    {
+        thread.join();
+    }
+
+    // 回收进程（主线程）的视口资源
     free(myBuffer);
     myBuffer = NULL;
     window = NULL;
@@ -60,12 +74,17 @@ void Renderer::run()
 
 Color Renderer::renderPixel(int x, int y)
 {   
-    // 生成光线
+    // 生成屏幕该点光线方向（世界坐标）
     auto ray = myCamera.getRay(x, y);
 
-    auto r = (float)x / myViewPortWidth;
-    auto g = (float)y / myViewPortHeight;
-	return Color(r, g, 0.0f);
+    // 光线如果与场景物体相交，则返回红色，否则返回黑色
+    Intersection intersection{};
+    if (this->mySphere->intersect(ray, intersection))
+    {
+        return intersection.normal * 0.5f + 0.5f;
+    }
+
+	return Color(0.0f, 0.0f, 0.0f);
 }
 
 

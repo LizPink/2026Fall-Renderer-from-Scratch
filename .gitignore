@@ -1,3 +1,5 @@
 # Build Files
 /build/
 
+# VS Settings
+/.vs/
