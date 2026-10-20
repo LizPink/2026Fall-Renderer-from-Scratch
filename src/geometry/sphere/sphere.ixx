@@ -4,15 +4,8 @@ export module sphere;
 import utils;
 import ray;
 
-export{
-	struct Intersection
-	{
-		Vector3f position;	// 交点的位置（世界坐标）
-		Vector3f normal;	// 交点的法线方向（世界坐标）
-		float t;			// 射线参数的求解值，等于交点到射线原点的距离.
-	};
-
-
+export
+{
 	class Sphere
 	{
 	public:
@@ -34,7 +27,7 @@ export{
 	private:
 		Vector3f myCenter;			// 坐标原点（世界坐标）
 		float myRadius;
-		Matrix4x4 myObjecToWorld;	// 对象空间到世界空间的变换矩阵
-		Matrix4x4 myWorldToObject;	// 世界空间到对象空间的变换矩阵
+		Matrix4x4f myObjecToWorld;	// 对象空间到世界空间的变换矩阵
+		Matrix4x4f myWorldToObject;	// 世界空间到对象空间的变换矩阵
 	};
 }

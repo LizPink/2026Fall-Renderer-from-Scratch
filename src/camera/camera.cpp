@@ -13,8 +13,8 @@ void Camera::initialize(const Vector3f& p, const Vector3f& target, const Vector3
 	//Vector3f r	= glm::normalize(glm::cross(up, l));
 	//Vector3f u	= glm::normalize(glm::cross(l, r));
 
-	//Matrix4x4 viewMatrix = glm::transpose(
-	//	Matrix4x4(
+	//Matrix4x4f viewMatrix = glm::transpose(
+	//	Matrix4x4f(
 	//		r.x, r.y, r.z, 0.0f,
 	//		u.x, u.y, u.z, 0.0f,
 	//		l.x, l.y, l.z, 0.0f,
@@ -23,11 +23,11 @@ void Camera::initialize(const Vector3f& p, const Vector3f& target, const Vector3
 	//);
 
 	// 计算取景矩阵
-	Matrix4x4 viewMatrix = glm::lookAtLH(p, target, up);
+	Matrix4x4f viewMatrix = glm::lookAtLH(p, target, up);
 	// 计算投影矩阵
-	Matrix4x4 projectionMatrix = glm::perspectiveFovLH_ZO(fov, (float) W, (float) H, n, f);
+	Matrix4x4f projectionMatrix = glm::perspectiveFovLH_ZO(fov, (float) W, (float) H, n, f);
 	// 计算视口矩阵
-	Matrix4x4 viewPortMatrix = Matrix4x4(
+	Matrix4x4f viewPortMatrix = Matrix4x4f(
 		W/2.0f,	0.0f,		0.0f,	0.0f,
 		0.0f,	-H/2.0f,	0.0f,	0.0f,
 		0.0f,	0.0f,		1.0f,	0.0f,

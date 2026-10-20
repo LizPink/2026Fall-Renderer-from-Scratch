@@ -8,22 +8,24 @@ module renderer;
 
 import utils;
 
-Renderer::Renderer(int width, int height):
-	myViewPortWidth(width),
-	myViewPortHeight(height)
+Renderer::Renderer(int width, int height) :
+    myViewPortWidth(width),
+    myViewPortHeight(height)
 {
     // Initialize myCamera
     myCamera.initialize(
-        Vector3f(0.0f, 0.0f, 0.0f), 
-        Vector3f(0.0f, 0.0f, 1.0f),
-        Vector3f(0.0f, 1.0f, 0.0f),
+        Vector3f(0.0f, 0.0f, 0.0f),     /// 相机位置（世界坐标）
+        Vector3f(0.0f, 0.0f, 1.0f),     /// 目标位置（世界坐标）
+        Vector3f(0.0f, 1.0f, 0.0f),     /// 上向量（世界坐标）
         glm::radians(45.0f),
         0.1f, 1000.0f,
         width, height
     );
 
-    // Initialize mySphere
-    this->mySphere = new Sphere{ Vector3f{0.0f, 0.0f, 5.0f}, 1.0f};
+    // Initialize Scene Objects
+    this->mySphere = new Sphere{ Vector3f{ 0, 0, 5 }, 1 };
+    this->myCircle = new Circle{ Vector3f{ 0, 0, 5 }, Vector3f{ 0.0f, glm::radians(180.0), 0 }, 1 };
+    this->myTriangle = new Triangle{Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0), makeWorldTransformation(Vector3f(0, 0, 5), Vector3f(0, 0, glm::radians(60.0f)), 2.0f)};
 }
 
 
@@ -79,9 +81,10 @@ Color Renderer::renderPixel(int x, int y)
 
     // 光线如果与场景物体相交，则返回红色，否则返回黑色
     Intersection intersection{};
-    if (this->mySphere->intersect(ray, intersection))
+    if (this->myTriangle->intersect(ray, intersection))
     {
-        return intersection.normal * 0.5f + 0.5f;
+        Color color{ intersection.normal * 0.5f + 0.5f };
+        return color;
     }
 
 	return Color(0.0f, 0.0f, 0.0f);

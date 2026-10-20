@@ -1,0 +1,37 @@
+module;
+#include <glm/glm.hpp>
+
+module circle;
+import std;
+
+Circle::Circle(const Vector3f& center, const Vector3f& euler, float radius)
+	:myCenter(center), myRadius(radius)
+{
+	this->myObjectToWorld = makeWorldTransformation(center, euler, 1.0f);
+	this->myWorldToObject = glm::inverse(this->myObjectToWorld);
+}
+
+bool Circle::intersect(const Ray& ray, Intersection& intersect) const
+{
+	// 将光线ray变换到局部坐标中
+	Ray local_ray = this->myWorldToObject * ray;
+
+	// 判断是否与圆盘所在平面相交
+	if (std::fabsf(local_ray.d.z) < 1e-6f)	// 平行于该圆盘
+		return false;
+
+	auto solve_t = -local_ray.o.z / local_ray.d.z;
+	if (solve_t < local_ray.minT or solve_t > local_ray.maxT)	// 射线够不到交点
+		return false;
+
+	auto intersect_point = local_ray.o + solve_t * local_ray.d;
+	if (glm::dot(intersect_point, intersect_point) > glm::dot(this->myRadius, this->myRadius))	// 交点不在圆盘内
+		return false;
+
+	// 记录相交信息
+	intersect.t = solve_t;
+	intersect.position = Vector3f(this->myObjectToWorld * Vector4f{ intersect_point, 1.0f });
+	intersect.normal = Vector3f(glm::normalize(this->myObjectToWorld * Vector4f{ 0.0f, 0.0f, 1.0f, 0.0f }));
+
+	return true;
+}

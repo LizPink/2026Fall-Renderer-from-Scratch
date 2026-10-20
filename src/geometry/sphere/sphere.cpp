@@ -4,6 +4,7 @@ module;
 
 module sphere;
 import utils;
+import ray;
 
 Sphere::Sphere(const Vector3f& center, float R)
 	: myCenter(center), myRadius(R)

@@ -19,8 +19,8 @@ export
 	using Vector4i = glm::ivec4;
 
 	/* 分数矩阵 */
-	using Matrix3x3 = glm::mat3;
-	using Matrix4x4 = glm::mat4;
+	using Matrix3x3f = glm::mat3;
+	using Matrix4x4f = glm::mat4;
 
 	/* 常量 */
 	constexpr float PI = glm::pi<float>();
@@ -31,26 +31,26 @@ export
 	*	@brief 生成平移变换矩阵.
 	*	@param position 指定平移的方向，朝该方向进行平移
 	*/
-	Matrix4x4 makeTranslation(const Vector3f& position);
+	Matrix4x4f makeTranslation(const Vector3f& position);
 
 
 	/**
 	*	@brief 生成旋转变换矩阵. 采用左手系建系，并采用左手定则进行变换. 
 	*	@param eulerAngle 指定旋转变换的欧拉角（分别绕x,y,z轴旋转的弧度角）。约定顺序为：先绕x轴、再绕y轴、最后绕z轴旋转.
 	*/
-	Matrix4x4 makeRotation(const Vector3f& eulerAngle);
+	Matrix4x4f makeRotation(const Vector3f& eulerAngle);
 
 
 	/**
 	*	@brief 生成缩放变换矩阵.
 	*/
-	Matrix4x4 makeScaling(float s);
+	Matrix4x4f makeScaling(float s);
 
 	/**
-	*	@brief 综合平移、旋转、伸缩变换的世界变换（局部坐标系 -> 世界坐标系）矩阵。约定顺序:（1）先缩放；（2）再旋转；（3）最后平移
+	*	@brief 综合平移、旋转、伸缩变换的世界变换（局部坐标系 -> 世界坐标系）矩阵。约定物体从局部坐标系进入世界坐标系时，遵循如下的变换顺序:（1）先缩放；（2）再旋转；（3）最后平移
 	*	@param direction	平移的方向
-	*	@param rotation	旋转的欧拉角
-	*	@param scaler	缩放系数，默认等比例缩放。
+	*	@param rotation		旋转的欧拉角
+	*	@param scaler		缩放系数，默认等比例缩放。
 	*/
-	Matrix4x4 makeWorldTransformation(const Vector3f& direction, const Vector3f& rotation, float scaler);
+	Matrix4x4f makeWorldTransformation(const Vector3f& direction, const Vector3f& rotation, float scaler);
 }

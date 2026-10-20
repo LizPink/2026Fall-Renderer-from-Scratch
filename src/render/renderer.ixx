@@ -1,10 +1,13 @@
 module;
 #include <atomic>
 #include <glm/glm.hpp>
-export module renderer;
 
+export module renderer;
 import camera;
 import sphere;
+import circle;
+import triangle;
+
 using Color = glm::vec3;
 
 /**
@@ -17,6 +20,8 @@ public:
 
 	/**
 	*	@brief 构造函数，用于初始化一个渲染器对象
+	*	@param width 屏幕的宽度
+	*	@param height 屏幕的高度
 	*/
 	Renderer(int width, int height);
 
@@ -48,4 +53,6 @@ private:
 
 	// 场景物体
 	Sphere* mySphere;
+	Circle*	myCircle;
+	Triangle* myTriangle;
 };

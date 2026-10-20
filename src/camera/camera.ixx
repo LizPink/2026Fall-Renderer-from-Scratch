@@ -21,6 +21,6 @@ public:
 
 private:
 	Vector3f myPosition;
-	Matrix4x4 myCombineMatrix;
-	Matrix4x4 myInverseMatrix;
+	Matrix4x4f myCombineMatrix;
+	Matrix4x4f myInverseMatrix;
 };
