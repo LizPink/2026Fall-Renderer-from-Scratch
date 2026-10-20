@@ -17,7 +17,7 @@ public:
 	/**
 	*	@brief 给定屏幕上的像素位置,获取光线
 	*/
-	Ray getRay(int x, int y) const;
+	Ray getRay(float x, float y) const;
 
 private:
 	Vector3f myPosition;

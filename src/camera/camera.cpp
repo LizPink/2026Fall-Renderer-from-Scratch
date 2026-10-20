@@ -39,7 +39,7 @@ void Camera::initialize(const Vector3f& p, const Vector3f& target, const Vector3
 }
 
 
-Ray Camera::getRay(int x, int y) const
+Ray Camera::getRay(float x, float y) const
 {
 	Ray ray;
 	ray.o = this->myPosition;

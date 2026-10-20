@@ -4,6 +4,7 @@ module;
 #include <vector>
 #include <MiniFB.h>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 module renderer;
 
 import utils;
@@ -76,18 +77,26 @@ void Renderer::run()
 
 Color Renderer::renderPixel(int x, int y)
 {   
-    // 生成屏幕该点光线方向（世界坐标）
-    auto ray = myCamera.getRay(x, y);
+    static const int N_SSAA = 100;    // 超级采样 Super-Sampling Anti-Aliasing 算法
+    Color finalColor {0,0,0};
 
-    // 光线如果与场景物体相交，则返回红色，否则返回黑色
-    Intersection intersection{};
-    if (this->myTriangle->intersect(ray, intersection))
+    for (int i = 0; i < N_SSAA; i++)
     {
-        Color color{ intersection.normal * 0.5f + 0.5f };
-        return color;
+        float px = x + glm::linearRand(0.0f, 1.0f);
+        float py = y + glm::linearRand(0.0f, 1.0f);
+
+        // 生成屏幕该点光线方向（世界坐标）
+        auto ray = myCamera.getRay(px, py);
+
+        // 光线如果与场景物体相交，则贡献渲染，否则不贡献渲染
+        Intersection    intersect{};
+        if (this->myCircle->intersect(ray, intersect))
+        {
+            finalColor += (intersect.normal * 0.5f + 0.5f) / float(N_SSAA);
+        }
     }
 
-	return Color(0.0f, 0.0f, 0.0f);
+    return finalColor;
 }
 
 
