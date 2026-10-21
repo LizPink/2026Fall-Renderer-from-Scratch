@@ -3,11 +3,12 @@ module;
 export module triangle;
 import utils;
 import ray;
+import primitive;
 
 /**
 	@brief 三角形类
 */
-export class Triangle
+export class Triangle: public Primitive
 {
 public:
 	Triangle() = delete;
@@ -23,7 +24,7 @@ public:
 	*	@brief		光线检测
 	*	@details	将三角形的顶点（世界坐标）和光线（世界坐标）进行光线检测. 由于三角形比较规则，直接在世界坐标中检测光线即可.
 	*/
-	bool intersect(Ray& ray, Intersection& intersect) const;
+	virtual bool intersect(Ray& ray, Intersection& intersect) const override;
 
 private:
 	Vector3f myVertices[3];		///	三角形的顶点（世界坐标系）

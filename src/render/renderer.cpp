@@ -5,9 +5,13 @@ module;
 #include <MiniFB.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
-module renderer;
 
+module renderer;
 import utils;
+import sphere;
+import circle;
+import triangle;
+
 
 Renderer::Renderer(int width, int height) :
     myViewPortWidth(width),
@@ -24,16 +28,18 @@ Renderer::Renderer(int width, int height) :
     );
 
     // Initialize Scene Objects
-    this->mySphere = new Sphere{ Vector3f{ 0, 0, 5 }, 1 };
-    this->myCircle = new Circle{ Vector3f{ 0, 0, 5 }, Vector3f{ 0.0f, glm::radians(180.0), 0 }, 1 };
-    this->myTriangle = new Triangle{Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0), makeWorldTransformation(Vector3f(0, 0, 5), Vector3f(0, 0, glm::radians(60.0f)), 2.0f)};
+    auto ptrSphere = new Sphere{ Vector3f{ 0.0f, 0.0f, 6.0f }, 1.0f };
+    auto ptrCircle = new Circle{ Vector3f{ 0, -2.0f, 5.0f }, Vector3f{ 0.0f, 0.0f, 0.0f }, 1.0f };
+    auto ptrTriangle = new Triangle{Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0), makeWorldTransformation(Vector3f(0, 0, 5), Vector3f(0, 0, glm::radians(60.0f)), 2.0f)};
+
+    this->myPrimitives.push_back(ptrSphere);
+    this->myPrimitives.push_back(ptrCircle);
+    this->myPrimitives.push_back(ptrTriangle);
 }
 
 
 Renderer::~Renderer()
-{
-    delete mySphere;
-}
+{}
 
 
 void Renderer::run()
@@ -85,18 +91,35 @@ Color Renderer::renderPixel(int x, int y)
         float px = x + glm::linearRand(0.0f, 1.0f);
         float py = y + glm::linearRand(0.0f, 1.0f);
 
-        // 生成屏幕该点光线方向（世界坐标）
-        auto ray = myCamera.getRay(px, py);
-
-        // 光线如果与场景物体相交，则贡献渲染，否则不贡献渲染
-        Intersection    intersect{};
-        if (this->myCircle->intersect(ray, intersect))
-        {
-            finalColor += (intersect.normal * 0.5f + 0.5f) / float(N_SSAA);
-        }
+        finalColor += this->renderSubPixel(px, py) / float(N_SSAA);
     }
 
     return finalColor;
+}
+
+
+/*
+*   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
+*   Step1. 遍历渲染器的场景物体
+*   Step2. 依次判断光线相交，并且更新最小的光线参数
+*/
+Color Renderer::renderSubPixel(float px, float py)
+{
+    // 定义屏幕该点光线方向（世界坐标）与相交信息
+    auto ray = myCamera.getRay(px, py);
+    Intersection intersect{};
+    Color subColor{0,0,0};
+
+    // 遍历场景物体
+    for (const auto& primitive : this->myPrimitives)
+    {
+        if (primitive->intersect(ray, intersect))
+        {
+            ray.maxT = intersect.t;
+            subColor = intersect.normal * 0.5f + 0.5f;
+        }
+    }
+    return subColor;
 }
 
 

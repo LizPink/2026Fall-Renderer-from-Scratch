@@ -3,6 +3,8 @@ module;
 
 module circle;
 import std;
+import ray;
+
 
 Circle::Circle(const Vector3f& center, const Vector3f& euler, float radius)
 	:myCenter(center), myRadius(radius)
@@ -11,7 +13,7 @@ Circle::Circle(const Vector3f& center, const Vector3f& euler, float radius)
 	this->myWorldToObject = glm::inverse(this->myObjectToWorld);
 }
 
-bool Circle::intersect(const Ray& ray, Intersection& intersect) const
+bool Circle::intersect(Ray& ray, Intersection& intersect) const
 {
 	// 将光线ray变换到局部坐标中
 	Ray local_ray = this->myWorldToObject * ray;

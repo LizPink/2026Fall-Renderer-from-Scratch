@@ -3,10 +3,11 @@ module;
 export module sphere;
 import utils;
 import ray;
+import primitive;
 
 export
 {
-	class Sphere
+	class Sphere: public Primitive
 	{
 	public:
 		Sphere() = delete;
@@ -22,7 +23,7 @@ export
 		*	@param ray 射线（世界空间坐标系）
 		*	@return 如果不相交返回false, 否则返回true, 并且修改交点intersection的信息（世界坐标）.
 		*/
-		bool intersect(Ray& ray, Intersection& intersection) const;
+		virtual bool intersect(Ray& ray, Intersection& intersection) const override;
 
 	private:
 		Vector3f myCenter;			// 坐标原点（世界坐标）

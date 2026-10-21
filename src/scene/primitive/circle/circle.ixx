@@ -3,11 +3,12 @@ module;
 export module circle;
 import utils;
 import ray;
+import primitive;
 
 /**
 *	@brief 位于Z轴上的圆盘（局部坐标）
 */
-export class Circle
+export class Circle: public Primitive
 {
 public:
 	Circle() = delete;
@@ -24,7 +25,7 @@ public:
 	*	@param ray	光线（世界坐标系）
 	*	@param intersection	相交信息记录对象
 	*/
-	bool intersect(const Ray& ray, Intersection& intersect) const;
+	virtual bool intersect(Ray& ray, Intersection& intersect) const override;
 
 private:
 	Vector3f myCenter;				/// 圆心坐标（世界坐标系）

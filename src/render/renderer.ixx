@@ -4,9 +4,7 @@ module;
 
 export module renderer;
 import camera;
-import sphere;
-import circle;
-import triangle;
+import primitive;
 
 using Color = glm::vec3;
 
@@ -42,6 +40,7 @@ private:
 
 	// 渲染缓冲区像素
 	Color renderPixel(int x, int y);
+	Color renderSubPixel(float px, float py);
 
 	// 缓冲区内存索引（供多线程使用）
 	std::atomic<int> myCurrentPixelIndex = 0;
@@ -52,7 +51,5 @@ private:
 	Camera myCamera;
 
 	// 场景物体
-	Sphere* mySphere;
-	Circle*	myCircle;
-	Triangle* myTriangle;
+	std::vector<Primitive*> myPrimitives;
 };
