@@ -3,7 +3,7 @@ module;
 export module sphere;
 import utils;
 import ray;
-import primitive;
+import scene_object;
 
 export
 {
@@ -11,12 +11,12 @@ export
 	{
 	public:
 		Sphere() = delete;
-
 		/**
-		*	@brief 球面几何体的构造函数，用于生成一个球面.
+		*	@brief 继承自Primitive图元类。球面几何体的构造函数，用于生成一个球面.
+		*	@param pSceneObject	传递给基类构造函数，用于构造基类部分
 		*	@param center 球面的球心位置（世界坐标系下）.
 		*/
-		Sphere(const Vector3f& center, float R);
+		Sphere(SceneObject* pSceneObject, const Vector3f& center, float R);
 
 		/**
 		*	@brief 判断给定光线是否与几何体相交
@@ -28,7 +28,5 @@ export
 	private:
 		Vector3f myCenter;			// 坐标原点（世界坐标）
 		float myRadius;
-		Matrix4x4f myObjecToWorld;	// 对象空间到世界空间的变换矩阵
-		Matrix4x4f myWorldToObject;	// 世界空间到对象空间的变换矩阵
 	};
 }

@@ -47,7 +47,6 @@ Ray Camera::getRay(float x, float y) const
 	Vector4f point_screen{x, y, 0.0f, 1.0f};
 	Vector4f point_world = this->myInverseMatrix * point_screen;
 	point_world = point_world / point_world.w;
-
 	ray.d = glm::normalize(Vector3f(point_world) - ray.o);
 
 	return ray;

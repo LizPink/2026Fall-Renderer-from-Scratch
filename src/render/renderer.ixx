@@ -4,33 +4,24 @@ module;
 
 export module renderer;
 import camera;
-import primitive;
+import scene_object;
 
 using Color = glm::vec3;
 
-/**
-*	@brief 渲染器类: 承担一个渲染器的角色
-*/
+/* @brief 渲染器类: 承担一个渲染器的角色 */
 export class Renderer
 {
 public:
+	/* @brief 构造函数 */
 	Renderer() = delete;
-
-	/**
-	*	@brief 构造函数，用于初始化一个渲染器对象
-	*	@param width 屏幕的宽度
-	*	@param height 屏幕的高度
-	*/
+	Renderer(Renderer&)			= delete;
+	Renderer(const Renderer&)	= delete;
+	Renderer(Renderer &&)		= delete;
 	Renderer(int width, int height);
 
-	/**
-	*	@brief 析构函数
-	*/
 	virtual ~Renderer();
 
-	/**
-	*	@brief 渲染器渲染入口
-	*/
+	/* @brief 渲染器渲染入口 */
 	void run();
 
 private:
@@ -47,9 +38,9 @@ private:
 	// 多线程渲染的执行函数
 	void runRenderThread();
 
-	// 场景摄像机
+	// 场景相机
 	Camera myCamera;
 
 	// 场景物体
-	std::vector<Primitive*> myPrimitives;
+	SceneObject* mySceneObject = nullptr;
 };

@@ -8,11 +8,17 @@ module;
 
 module renderer;
 import utils;
+import scene_object;
 import sphere;
 import circle;
 import triangle;
 
 
+/**
+*	@brief 构造函数，用于初始化一个渲染器对象
+*	@param width 屏幕的宽度
+*	@param height 屏幕的高度
+*/
 Renderer::Renderer(int width, int height) :
     myViewPortWidth(width),
     myViewPortHeight(height)
@@ -22,24 +28,41 @@ Renderer::Renderer(int width, int height) :
         Vector3f(0.0f, 0.0f, 0.0f),     /// 相机位置（世界坐标）
         Vector3f(0.0f, 0.0f, 1.0f),     /// 目标位置（世界坐标）
         Vector3f(0.0f, 1.0f, 0.0f),     /// 上向量（世界坐标）
-        glm::radians(45.0f),
+        glm::radians(60.0f),
         0.1f, 1000.0f,
         width, height
     );
 
     // Initialize Scene Objects
-    auto ptrSphere = new Sphere{ Vector3f{ 0.0f, 0.0f, 6.0f }, 1.0f };
-    auto ptrCircle = new Circle{ Vector3f{ 0, -2.0f, 5.0f }, Vector3f{ 0.0f, 0.0f, 0.0f }, 1.0f };
-    auto ptrTriangle = new Triangle{Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0), makeWorldTransformation(Vector3f(0, 0, 5), Vector3f(0, 0, glm::radians(60.0f)), 2.0f)};
+    this->mySceneObject = new SceneObject{ Vector3f{ 0.0f, 0.0f, 5.0f }, Vector3f{0, 0, 0}, 2.0f };
 
-    this->myPrimitives.push_back(ptrSphere);
-    this->myPrimitives.push_back(ptrCircle);
-    this->myPrimitives.push_back(ptrTriangle);
+    //auto ptrSphere = new Sphere{ mySceneObject, Vector3f{ 0.0f, 0.0f, 6.0f }, 1.0f };
+    //auto ptrCircle = new Circle{ mySceneObject, Vector3f{ 0, -2.0f, 5.0f }, Vector3f{ 0.0f, 0.0f, 0.0f }, 1.0f };
+    //auto ptrTriangle = new Triangle{mySceneObject, Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0)};
+
+    //mySceneObject->addPrimitive(ptrSphere);
+    //mySceneObject->addPrimitive(ptrCircle);
+    //mySceneObject->addPrimitive(ptrTriangle);
+
+    //auto pTriangle1 = new Triangle{ mySceneObject, Vector3f{ -1, -1, 0 }, Vector3f{ 1,-1,0 }, Vector3f{ 1,1,0 } };
+    //auto pTriangle2 = new Triangle{ mySceneObject, Vector3f{ -1, -1, 0 }, Vector3f{ 1,1,0 }, Vector3f{ -1,1,0 } };
+
+    //mySceneObject->addPrimitive(pTriangle1);
+    //mySceneObject->addPrimitive(pTriangle2);
+
+    mySceneObject->createPrimitive<Triangle>(Vector3f{ -1, -1, 0 }, Vector3f{ 1,-1, 0 }, Vector3f{ 1, 1, 0 });
+    mySceneObject->createPrimitive<Triangle>(Vector3f{ -1, -1, 0 }, Vector3f{ 1, 1, 0 }, Vector3f{ -1, 1, 0 });
 }
 
 
 Renderer::~Renderer()
-{}
+{
+    if (mySceneObject)
+    {
+        delete mySceneObject;
+        mySceneObject = nullptr;
+    }
+}
 
 
 void Renderer::run()
@@ -81,48 +104,6 @@ void Renderer::run()
 }
 
 
-Color Renderer::renderPixel(int x, int y)
-{   
-    static const int N_SSAA = 100;    // 超级采样 Super-Sampling Anti-Aliasing 算法
-    Color finalColor {0,0,0};
-
-    for (int i = 0; i < N_SSAA; i++)
-    {
-        float px = x + glm::linearRand(0.0f, 1.0f);
-        float py = y + glm::linearRand(0.0f, 1.0f);
-
-        finalColor += this->renderSubPixel(px, py) / float(N_SSAA);
-    }
-
-    return finalColor;
-}
-
-
-/*
-*   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
-*   Step1. 遍历渲染器的场景物体
-*   Step2. 依次判断光线相交，并且更新最小的光线参数
-*/
-Color Renderer::renderSubPixel(float px, float py)
-{
-    // 定义屏幕该点光线方向（世界坐标）与相交信息
-    auto ray = myCamera.getRay(px, py);
-    Intersection intersect{};
-    Color subColor{0,0,0};
-
-    // 遍历场景物体
-    for (const auto& primitive : this->myPrimitives)
-    {
-        if (primitive->intersect(ray, intersect))
-        {
-            ray.maxT = intersect.t;
-            subColor = intersect.normal * 0.5f + 0.5f;
-        }
-    }
-    return subColor;
-}
-
-
 void Renderer::runRenderThread()
 /*  运行渲染线程
 *   作为渲染线程的入口函数，开辟子线程用于渲染工作，和主线程共享缓冲区。
@@ -148,4 +129,39 @@ void Renderer::runRenderThread()
         assert(myBuffer != NULL);
         myBuffer[y * myViewPortWidth + x] = (r << 16) | (g << 8) | (b);
     }
+}
+
+
+Color Renderer::renderPixel(int x, int y)
+{   
+    static const int N_SSAA = 100;    // 超级采样 Super-Sampling Anti-Aliasing 算法
+    Color finalColor {0,0,0};
+
+    for (int i = 0; i < N_SSAA; i++)
+    {
+        float px = x + glm::linearRand(0.0f, 1.0f);
+        float py = y + glm::linearRand(0.0f, 1.0f);
+
+        finalColor += this->renderSubPixel(px, py) / float(N_SSAA);
+    }
+
+    return finalColor;
+}
+
+
+/**
+*   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
+*   Step1. 遍历渲染器的场景物体
+*   Step2. 依次判断光线相交，并且更新最小的光线参数
+*/
+Color Renderer::renderSubPixel(float px, float py)
+{
+    // 定义屏幕该点光线方向（世界坐标）与相交信息
+    auto ray = this->myCamera.getRay(px, py);
+    Intersection intersect{}; Color subColor{0,0,0};
+
+    if (this->mySceneObject->intersect(ray, intersect))
+        subColor = intersect.normal * 0.5f + 0.5f;
+    
+    return subColor;
 }

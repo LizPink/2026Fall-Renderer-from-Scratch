@@ -1,24 +1,29 @@
 module;
 
 export module triangle;
+
 import utils;
 import ray;
-import primitive;
+import scene_object;
+
+// 前向声明
+export class Triangle;
+
 
 /**
-	@brief 三角形类
+	@brief 三角形类Triangle，继承自Primitive图元类，统一由ObjectScene场景物体类管理.
 */
-export class Triangle: public Primitive
+class Triangle: public Primitive
 {
 public:
 	Triangle() = delete;
+	Triangle(Triangle&)			= delete;
+	Triangle(const Triangle&)	= delete;
+	Triangle(Triangle&&)		= delete;
+	/* @brief 构造函数 */
+	Triangle(SceneObject* pSceneObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2);
 
-	/**
-	*	@brief	构造一个三角形对象
-	*	@param	v0, v1, v2		三角形的三个顶点（局部坐标系）(有顺序)
-	*	@param	objectToWorld	世界变换矩阵（将点变换到世界坐标中）
-	*/
-	Triangle(const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, const Matrix4x4f& objectToWorld);
+	~Triangle() = default;
 
 	/**
 	*	@brief		光线检测

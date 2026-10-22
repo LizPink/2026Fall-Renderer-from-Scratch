@@ -4,8 +4,17 @@ module;
 module triangle;
 import std;
 
-Triangle::Triangle(const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, const Matrix4x4f& objectToWorld)
+
+/**
+*	@brief	构造一个三角形对象
+*	@param	v0->v1->v2		三角形的三个顺序顶点（局部坐标系）
+*	@param	objectToWorld	世界变换矩阵（局部坐标系 -> 世界坐标）
+*/
+Triangle::Triangle(SceneObject* pSceneObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2)
+	: Primitive(pSceneObject)
 {
+	Matrix4x4f objectToWorld = Primitive::myPtrSceneObject->getObjectToWorld();
+
 	// 计算三个顶点的世界坐标
 	this->myVertices[0] = Vector3f(objectToWorld * Vector4f{v0,1.0f});
 	this->myVertices[1] = Vector3f(objectToWorld * Vector4f{v1,1.0f});
@@ -14,7 +23,7 @@ Triangle::Triangle(const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, c
 	// 计算三角形对象的法线（世界坐标）
 	auto edge1 = this->myVertices[1] - this->myVertices[0];
 	auto edge2 = this->myVertices[2] - this->myVertices[0];
-	this->myNormal = glm::cross(edge1, edge2);
+	this->myNormal = glm::normalize(glm::cross(edge1, edge2));
 }
 
 bool Triangle::intersect(Ray& ray, Intersection& intersect) const
@@ -51,7 +60,7 @@ bool Triangle::intersect(Ray& ray, Intersection& intersect) const
 	if (a<0.0f || b<0.0f || c<0.0f)		// 交点落在三角形外
 		return false;
 
-	// 光线与三角形相交
+	// 光线与三角形相交，更新相交信息
 	Vector3f intersect_point = ray.o + t*ray.d;
 	intersect.normal = this->myNormal;
 	intersect.t = t;

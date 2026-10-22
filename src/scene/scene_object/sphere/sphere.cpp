@@ -5,20 +5,18 @@ module;
 module sphere;
 import utils;
 import ray;
+import scene_object;
 
-Sphere::Sphere(const Vector3f& center, float R)
-	: myCenter(center), myRadius(R)
-{
-	// 球体可以省略旋转和缩放信息
-	this->myObjecToWorld = makeWorldTransformation(center, Vector3f(0.0f, 0.0f, 0.0f), 1.0f);
-	this->myWorldToObject = glm::inverse(this->myObjecToWorld);
-}
+Sphere::Sphere(SceneObject* pSceneObject, const Vector3f& center, float R)
+	: Primitive(pSceneObject),
+	  myCenter(center), myRadius(R)
+{}
 
 
 bool Sphere::intersect(Ray& ray, Intersection& intersection) const
 {
 	// 将射线ray转移至局部坐标系表示下
-	Ray local_ray = this->myWorldToObject * ray;
+	Ray local_ray = Primitive::myPtrSceneObject->getObjectToWorld() * ray;
 
 	// 计算局部坐标系下，光线是否与球体相交
 	auto A = glm::dot(local_ray.d, local_ray.d);
@@ -52,9 +50,9 @@ bool Sphere::intersect(Ray& ray, Intersection& intersection) const
 
 	// 如果相交，更新相交信息
 	Vector3f intersect_point	= local_ray.o + intersection.t * local_ray.d;	// 交点（局部坐标）
-	Vector3f intersect_normal	= glm::normalize(intersect_point);				// 法线方向（局部坐标）
-	intersection.position		= Vector3f(this->myObjecToWorld * Vector4f{ intersect_point, 1.0f });					// 交点（世界坐标）
-	intersection.normal			= glm::normalize(Vector3f(this->myObjecToWorld * Vector4f{ intersect_normal, 0.0f }));	// 法线方向（世界坐标）
+	Vector3f intersect_normal	= glm::normalize(intersect_point);				// 法线（局部坐标）
+	intersection.position		= Vector3f(Primitive::myPtrSceneObject->getObjectToWorld() * Vector4f{ intersect_point, 1.0f });					// 交点（世界坐标）
+	intersection.normal			= glm::normalize(Vector3f(Primitive::myPtrSceneObject->getObjectToWorld() * Vector4f{ intersect_normal, 0.0f }));	// 法线（世界坐标）
 	
 	return true;
 }
