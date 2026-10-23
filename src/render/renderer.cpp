@@ -8,39 +8,22 @@ module;
 
 module renderer;
 import utils;
-import camera;
-import scene_object;
-import triangle;
+import scene_loader;
 
 
 /**
 *	@brief 构造函数，用于初始化一个渲染器对象
 *	@param width 屏幕的宽度
 *	@param height 屏幕的高度
+*	@param sceneFilepath 场景XML文件的路径
 */
-Renderer::Renderer(int width, int height) :
+Renderer::Renderer(int width, int height, const char* sceneFilepath) :
     myViewPortWidth(width),
     myViewPortHeight(height)
 {
-    // 由Scene统一管理摄像机和场景物体。
-    myScene = std::make_unique<Scene>();
-    Camera camera;
-    camera.initialize(
-        Vector3f(0.0f, 0.0f, 0.0f),
-        Vector3f(0.0f, 0.0f, 1.0f),
-        Vector3f(0.0f, 1.0f, 0.0f),
-        glm::radians(60.0f),
-        0.1f, 1000.0f,
-        width, height
-    );
-    myScene->setCamera(camera);
-
-    auto* object = myScene->createSceneObject(
-        Vector3f{0.0f, 0.0f, 5.0f}, Vector3f{0.0f}, 2.0f);
-    object->createPrimitive<Triangle>(
-        Vector3f{-1, -1, 0}, Vector3f{1, -1, 0}, Vector3f{1, 1, 0});
-    object->createPrimitive<Triangle>(
-        Vector3f{-1, -1, 0}, Vector3f{1, 1, 0}, Vector3f{-1, 1, 0});
+    // 加载器场景物体（所有权归Renderer所有）
+    SceneLoader loader;
+    myScene = loader.loadSceneFromXML(sceneFilepath, width, height);
 }
 
 

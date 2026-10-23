@@ -17,7 +17,7 @@ public:
 	Renderer(Renderer&)			= delete;
 	Renderer(const Renderer&)	= delete;
 	Renderer(Renderer &&)		= delete;
-	Renderer(int width, int height);
+	Renderer(int width, int height, const char* sceneFilepath);
 
 	~Renderer() = default;
 

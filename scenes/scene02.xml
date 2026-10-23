@@ -1,0 +1,1329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    scene02：犹他茶壶（Utah Teapot）。
+    沿用 scene01.xml / scene03.xml 的 Scene、Camera、SceneObject 和 Triangle 格式。
+    标准 Bézier 曲面已离散成三角形，当前加载器可以直接读取，无需额外模型文件。
+    每个曲面在两个参数方向各分成 2 段，共 248 个非退化三角形。
+    这是低细分版本；当前渲染器按面法线着色，因此表面会显示彩色分面。
+    当前主程序使用 1920×1080 和每像素 100 次采样，茶壶绘制会比简单场景慢。
+    坐标约定：Y 轴向上，壶底位于 y=0；把手在负 X 侧，壶嘴在正 X 侧。
+    XML 注释放在元素之间，不要插入数值中；程序会跳过这些注释。
+
+    模型来源：FreeGLUT 的犹他茶壶控制点，含其补充的壶底。
+    https://github.com/freeglut/freeglut/blob/master/src/fg_teapot_data.h
+    下载源文件 SHA-256：e6b5587e62acb59564c3801b18ed377c05e78083fbcc70b7bab2caeb4c573ed9
+    已将源数据转换为 Y 轴向上并缩小至 0.5 倍，保留模型各部件的比例。
+-->
+<!--
+    保留模型数据源的许可声明：
+    The freeglut library teapot data include file.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+    PAWEL W. OLSZTA BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+<Scene>
+    <!-- 相机从斜上方看向茶壶中心，可同时看到壶盖、壶嘴和把手。 -->
+    <Camera>
+        <!-- Position：相机的世界坐标；Target：相机看向的世界坐标。 -->
+        <Position>2.5, 2.2, -6</Position>
+        <Target>0.1, 0.75, 0</Target>
+        <!-- Up：相机的上方向，这里使用世界坐标的正 Y 轴。 -->
+        <Up>0, 1, 0</Up>
+        <!-- NearZ / FarZ：构建投影矩阵时使用的近、远裁剪面距离。 -->
+        <NearZ>0.1</NearZ>
+        <FarZ>1000</FarZ>
+        <!-- Fov：垂直视野角，单位为度；调小可让茶壶在画面中变大。 -->
+        <Fov>30</Fov>
+    </Camera>
+
+    <SceneObjects>
+        <!-- 整个茶壶共用一个 SceneObject，修改 Transform 即可调整所有部件。 -->
+        <SceneObject>
+            <Transform>
+                <!-- Position：整体平移；Rotation：绕 X、Y、Z 轴旋转，单位为度。 -->
+                <Position>0, 0, 0</Position>
+                <Rotation>0, 0, 0</Rotation>
+                <!-- Scale：统一缩放倍数，必须大于 0。 -->
+                <Scale>1</Scale>
+            </Transform>
+            <Primitives>
+                <!-- 每个 Triangle 的三个 Vertex 为局部坐标 x, y, z。 -->
+                <!-- 顶点绕序决定法线方向；这里将曲面的法线统一朝外。 -->
+
+                <!-- 壶口边缘：32 个三角形。 -->
+                <Triangle>
+                    <Vertex>0.7, 1.2, 0</Vertex>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.7, 1.2, 0</Vertex>
+                    <Vertex>0.497, 1.2, 0.497</Vertex>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.497, 1.2, 0.497</Vertex>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.497, 1.2, 0.497</Vertex>
+                    <Vertex>0, 1.2, 0.7</Vertex>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, -0.7</Vertex>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, -0.7</Vertex>
+                    <Vertex>0.497, 1.2, -0.497</Vertex>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.497, 1.2, -0.497</Vertex>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.497, 1.2, -0.497</Vertex>
+                    <Vertex>0.7, 1.2, 0</Vertex>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.7, 1.2, 0</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.7, 1.2, 0</Vertex>
+                    <Vertex>-0.497, 1.2, -0.497</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.497, 1.2, -0.497</Vertex>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.497, 1.2, -0.497</Vertex>
+                    <Vertex>0, 1.2, -0.7</Vertex>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4981094, 1.2492188, -0.4981094</Vertex>
+                    <Vertex>0, 1.2492188, -0.7015625</Vertex>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, 0.7</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, 0.7</Vertex>
+                    <Vertex>-0.497, 1.2, 0.497</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.497, 1.2, 0.497</Vertex>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.497, 1.2, 0.497</Vertex>
+                    <Vertex>-0.7, 1.2, 0</Vertex>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2492188, 0.7015625</Vertex>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4981094, 1.2492188, 0.4981094</Vertex>
+                    <Vertex>-0.7015625, 1.2492188, 0</Vertex>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶身上半部：32 个三角形。 -->
+                <Triangle>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                    <Vertex>1, 0.45, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>0, 0.45, 1</Vertex>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                    <Vertex>0, 0.45, 1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0.75, 1.2, 0</Vertex>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                    <Vertex>0, 0.45, -1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>1, 0.45, 0</Vertex>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>1, 0.45, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.5325, 1.2, -0.5325</Vertex>
+                    <Vertex>0, 1.2, -0.75</Vertex>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>0, 0.45, -1</Vertex>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6545313, 0.8109375, -0.6545313</Vertex>
+                    <Vertex>0, 0.8109375, -0.921875</Vertex>
+                    <Vertex>0, 0.45, -1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.2, 0.75</Vertex>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.5325, 1.2, 0.5325</Vertex>
+                    <Vertex>-0.75, 1.2, 0</Vertex>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                    <Vertex>0, 0.45, 1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.8109375, 0.921875</Vertex>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6545313, 0.8109375, 0.6545313</Vertex>
+                    <Vertex>-0.921875, 0.8109375, 0</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶身下半部：32 个三角形。 -->
+                <Triangle>
+                    <Vertex>1, 0.45, 0</Vertex>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1, 0.45, 0</Vertex>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.71, 0.45, 0.71</Vertex>
+                    <Vertex>0, 0.45, 1</Vertex>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.45, -1</Vertex>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.45, -1</Vertex>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.71, 0.45, -0.71</Vertex>
+                    <Vertex>1, 0.45, 0</Vertex>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0.875, 0.1921875, 0</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.71, 0.45, -0.71</Vertex>
+                    <Vertex>0, 0.45, -1</Vertex>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.62125, 0.1921875, -0.62125</Vertex>
+                    <Vertex>0, 0.1921875, -0.875</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.45, 1</Vertex>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.45, 1</Vertex>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.71, 0.45, 0.71</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.1921875, 0.875</Vertex>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.62125, 0.1921875, 0.62125</Vertex>
+                    <Vertex>-0.875, 0.1921875, 0</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶盖顶部和壶钮：32 个三角形。 -->
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0.1625, 1.490625, 0</Vertex>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>-0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.000375, 1.575, -0.000375</Vertex>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1155625, 1.490625, -0.1155625</Vertex>
+                    <Vertex>0, 1.490625, -0.1625</Vertex>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>-0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.000375, 1.575, 0.000375</Vertex>
+                    <Vertex>0, 1.575, 0</Vertex>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.490625, 0.1625</Vertex>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1155625, 1.490625, 0.1155625</Vertex>
+                    <Vertex>-0.1625, 1.490625, 0</Vertex>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶盖外沿：32 个三角形。 -->
+                <Triangle>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.071, 1.35, 0.071</Vertex>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                    <Vertex>0.4615, 1.2, 0.4615</Vertex>
+                    <Vertex>0.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>0.4615, 1.2, 0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>0, 1.2, 0.65</Vertex>
+                    <Vertex>0.4615, 1.2, 0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                    <Vertex>0, 1.2, 0.65</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0.1, 1.35, 0</Vertex>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                    <Vertex>0.4615, 1.2, -0.4615</Vertex>
+                    <Vertex>0, 1.2, -0.65</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0.4615, 1.2, -0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0.65, 1.2, 0</Vertex>
+                    <Vertex>0.4615, 1.2, -0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0.4125, 1.275, 0</Vertex>
+                    <Vertex>0.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.071, 1.35, -0.071</Vertex>
+                    <Vertex>0, 1.35, -0.1</Vertex>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                    <Vertex>-0.4615, 1.2, -0.4615</Vertex>
+                    <Vertex>-0.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>-0.4615, 1.2, -0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0, 1.2, -0.65</Vertex>
+                    <Vertex>-0.4615, 1.2, -0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.292875, 1.275, -0.292875</Vertex>
+                    <Vertex>0, 1.275, -0.4125</Vertex>
+                    <Vertex>0, 1.2, -0.65</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.35, 0.1</Vertex>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.071, 1.35, 0.071</Vertex>
+                    <Vertex>-0.1, 1.35, 0</Vertex>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                    <Vertex>-0.4615, 1.2, 0.4615</Vertex>
+                    <Vertex>0, 1.2, 0.65</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 1.275, 0.4125</Vertex>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>-0.4615, 1.2, 0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>-0.65, 1.2, 0</Vertex>
+                    <Vertex>-0.4615, 1.2, 0.4615</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.292875, 1.275, 0.292875</Vertex>
+                    <Vertex>-0.4125, 1.275, 0</Vertex>
+                    <Vertex>-0.65, 1.2, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶底：24 个三角形。 -->
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0, 0.0234375, 0.6421875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>0.4559531, 0.0234375, 0.4559531</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.0234375, 0.6421875</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.0234375, 0.6421875</Vertex>
+                    <Vertex>0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                    <Vertex>0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>0.6421875, 0.0234375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>0, 0.0234375, -0.6421875</Vertex>
+                    <Vertex>0.4559531, 0.0234375, -0.4559531</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                    <Vertex>0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                    <Vertex>0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>0, 0.0234375, -0.6421875</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>0, 0.0234375, -0.6421875</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>-0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, -0.4559531</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.0234375, -0.6421875</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                    <Vertex>0, 0.075, -0.75</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0.0234375, -0.6421875</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                    <Vertex>-0.5325, 0.075, -0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4559531, 0.0234375, -0.4559531</Vertex>
+                    <Vertex>-0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>-0.6421875, 0.0234375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0, 0, 0</Vertex>
+                    <Vertex>0, 0.0234375, 0.6421875</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, 0.4559531</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                    <Vertex>-0.75, 0.075, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.6421875, 0.0234375, 0</Vertex>
+                    <Vertex>-0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                    <Vertex>-0.5325, 0.075, 0.5325</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.4559531, 0.0234375, 0.4559531</Vertex>
+                    <Vertex>0, 0.0234375, 0.6421875</Vertex>
+                    <Vertex>0, 0.075, 0.75</Vertex>
+                </Triangle>
+
+                <!-- 把手上半部：16 个三角形。 -->
+                <Triangle>
+                    <Vertex>-0.8, 1.0125, 0</Vertex>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.8, 1.0125, 0</Vertex>
+                    <Vertex>-0.775, 1.06875, 0.1125</Vertex>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.775, 1.06875, 0.1125</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.775, 1.06875, 0.1125</Vertex>
+                    <Vertex>-0.75, 1.125, 0</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.259375, 1.0476562, 0.1125</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.8, 1.0125, 0</Vertex>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.8, 1.0125, 0</Vertex>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                    <Vertex>-0.775, 1.06875, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.775, 1.06875, -0.1125</Vertex>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-0.775, 1.06875, -0.1125</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                    <Vertex>-0.75, 1.125, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.20625, 0.9984375, 0</Vertex>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.259375, 1.0476562, -0.1125</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                    <Vertex>-1.3125, 1.096875, 0</Vertex>
+                </Triangle>
+
+                <!-- 把手下半部：16 个三角形。 -->
+                <Triangle>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.425, 0.9, 0.1125</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                    <Vertex>-0.975, 0.375, 0.1125</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                    <Vertex>-0.975, 0.375, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                    <Vertex>-0.95, 0.3, 0</Vertex>
+                    <Vertex>-0.975, 0.375, 0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.3171875, 0.6269531, 0.1125</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                    <Vertex>-0.95, 0.3, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.35, 0.9, 0</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.425, 0.9, -0.1125</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                    <Vertex>-1.5, 0.9, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                    <Vertex>-1, 0.45, 0</Vertex>
+                    <Vertex>-0.975, 0.375, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.26875, 0.675, 0</Vertex>
+                    <Vertex>-0.975, 0.375, -0.1125</Vertex>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                    <Vertex>-0.975, 0.375, -0.1125</Vertex>
+                    <Vertex>-0.95, 0.3, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>-1.3171875, 0.6269531, -0.1125</Vertex>
+                    <Vertex>-0.95, 0.3, 0</Vertex>
+                    <Vertex>-1.365625, 0.5789063, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶嘴根部：16 个三角形。 -->
+                <Triangle>
+                    <Vertex>0.85, 0.7125, 0</Vertex>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.7125, 0</Vertex>
+                    <Vertex>0.85, 0.50625, 0.2475</Vertex>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.50625, 0.2475</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.50625, 0.2475</Vertex>
+                    <Vertex>0.85, 0.3, 0</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.26875, 0.8109375, 0.170625</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.7125, 0</Vertex>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.7125, 0</Vertex>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                    <Vertex>0.85, 0.50625, -0.2475</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.50625, -0.2475</Vertex>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>0.85, 0.50625, -0.2475</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                    <Vertex>0.85, 0.3, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.19375, 0.9, 0</Vertex>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.26875, 0.8109375, -0.170625</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                    <Vertex>1.34375, 0.721875, 0</Vertex>
+                </Triangle>
+
+                <!-- 壶嘴前端和开口：16 个三角形。 -->
+                <Triangle>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5, 1.2, 0.09375</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                    <Vertex>1.5, 1.2, 0.05625</Vertex>
+                    <Vertex>1.4, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                    <Vertex>1.5, 1.2, 0.05625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                    <Vertex>1.6, 1.2, 0</Vertex>
+                    <Vertex>1.5, 1.2, 0.05625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5632812, 1.2333984, 0.075</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                    <Vertex>1.6, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.35, 1.2, 0</Vertex>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5, 1.2, -0.09375</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                    <Vertex>1.65, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                    <Vertex>1.4, 1.2, 0</Vertex>
+                    <Vertex>1.5, 1.2, -0.05625</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.4125, 1.228125, 0</Vertex>
+                    <Vertex>1.5, 1.2, -0.05625</Vertex>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                    <Vertex>1.5, 1.2, -0.05625</Vertex>
+                    <Vertex>1.6, 1.2, 0</Vertex>
+                </Triangle>
+                <Triangle>
+                    <Vertex>1.5632812, 1.2333984, -0.075</Vertex>
+                    <Vertex>1.6, 1.2, 0</Vertex>
+                    <Vertex>1.7140625, 1.2386719, 0</Vertex>
+                </Triangle>
+            </Primitives>
+        </SceneObject>
+    </SceneObjects>
+</Scene>
