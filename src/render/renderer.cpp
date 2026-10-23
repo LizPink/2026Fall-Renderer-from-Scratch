@@ -8,9 +8,8 @@ module;
 
 module renderer;
 import utils;
+import camera;
 import scene_object;
-import sphere;
-import circle;
 import triangle;
 
 
@@ -23,45 +22,25 @@ Renderer::Renderer(int width, int height) :
     myViewPortWidth(width),
     myViewPortHeight(height)
 {
-    // Initialize myCamera
-    myCamera.initialize(
-        Vector3f(0.0f, 0.0f, 0.0f),     /// 相机位置（世界坐标）
-        Vector3f(0.0f, 0.0f, 1.0f),     /// 目标位置（世界坐标）
-        Vector3f(0.0f, 1.0f, 0.0f),     /// 上向量（世界坐标）
+    // 由Scene统一管理摄像机和场景物体。
+    myScene = std::make_unique<Scene>();
+    Camera camera;
+    camera.initialize(
+        Vector3f(0.0f, 0.0f, 0.0f),
+        Vector3f(0.0f, 0.0f, 1.0f),
+        Vector3f(0.0f, 1.0f, 0.0f),
         glm::radians(60.0f),
         0.1f, 1000.0f,
         width, height
     );
+    myScene->setCamera(camera);
 
-    // Initialize Scene Objects
-    this->mySceneObject = new SceneObject{ Vector3f{ 0.0f, 0.0f, 5.0f }, Vector3f{0, 0, 0}, 2.0f };
-
-    //auto ptrSphere = new Sphere{ mySceneObject, Vector3f{ 0.0f, 0.0f, 6.0f }, 1.0f };
-    //auto ptrCircle = new Circle{ mySceneObject, Vector3f{ 0, -2.0f, 5.0f }, Vector3f{ 0.0f, 0.0f, 0.0f }, 1.0f };
-    //auto ptrTriangle = new Triangle{mySceneObject, Vector3f(-1, 0, 0), Vector3f(0, 1, 0), Vector3f(1, 0, 0)};
-
-    //mySceneObject->addPrimitive(ptrSphere);
-    //mySceneObject->addPrimitive(ptrCircle);
-    //mySceneObject->addPrimitive(ptrTriangle);
-
-    //auto pTriangle1 = new Triangle{ mySceneObject, Vector3f{ -1, -1, 0 }, Vector3f{ 1,-1,0 }, Vector3f{ 1,1,0 } };
-    //auto pTriangle2 = new Triangle{ mySceneObject, Vector3f{ -1, -1, 0 }, Vector3f{ 1,1,0 }, Vector3f{ -1,1,0 } };
-
-    //mySceneObject->addPrimitive(pTriangle1);
-    //mySceneObject->addPrimitive(pTriangle2);
-
-    mySceneObject->createPrimitive<Triangle>(Vector3f{ -1, -1, 0 }, Vector3f{ 1,-1, 0 }, Vector3f{ 1, 1, 0 });
-    mySceneObject->createPrimitive<Triangle>(Vector3f{ -1, -1, 0 }, Vector3f{ 1, 1, 0 }, Vector3f{ -1, 1, 0 });
-}
-
-
-Renderer::~Renderer()
-{
-    if (mySceneObject)
-    {
-        delete mySceneObject;
-        mySceneObject = nullptr;
-    }
+    auto* object = myScene->createSceneObject(
+        Vector3f{0.0f, 0.0f, 5.0f}, Vector3f{0.0f}, 2.0f);
+    object->createPrimitive<Triangle>(
+        Vector3f{-1, -1, 0}, Vector3f{1, -1, 0}, Vector3f{1, 1, 0});
+    object->createPrimitive<Triangle>(
+        Vector3f{-1, -1, 0}, Vector3f{1, 1, 0}, Vector3f{-1, 1, 0});
 }
 
 
@@ -151,16 +130,15 @@ Color Renderer::renderPixel(int x, int y)
 
 /**
 *   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
-*   Step1. 遍历渲染器的场景物体
-*   Step2. 依次判断光线相交，并且更新最小的光线参数
+*   Step1. 通过渲染器的摄像机对场景进行相交性测试
 */
 Color Renderer::renderSubPixel(float px, float py)
 {
     // 定义屏幕该点光线方向（世界坐标）与相交信息
-    auto ray = this->myCamera.getRay(px, py);
+    auto ray = this->myScene->getCamera().getRay(px, py);
     Intersection intersect{}; Color subColor{0,0,0};
 
-    if (this->mySceneObject->intersect(ray, intersect))
+    if (this->myScene->intersect(ray, intersect))
         subColor = intersect.normal * 0.5f + 0.5f;
     
     return subColor;

@@ -3,8 +3,8 @@ module;
 #include <glm/glm.hpp>
 
 export module renderer;
-import camera;
-import scene_object;
+import std;
+import scene;
 
 using Color = glm::vec3;
 
@@ -19,7 +19,7 @@ public:
 	Renderer(Renderer &&)		= delete;
 	Renderer(int width, int height);
 
-	virtual ~Renderer();
+	~Renderer() = default;
 
 	/* @brief 渲染器渲染入口 */
 	void run();
@@ -38,9 +38,6 @@ private:
 	// 多线程渲染的执行函数
 	void runRenderThread();
 
-	// 场景相机
-	Camera myCamera;
-
-	// 场景物体
-	SceneObject* mySceneObject = nullptr;
+	// 场景对象
+	std::unique_ptr<Scene> myScene;
 };

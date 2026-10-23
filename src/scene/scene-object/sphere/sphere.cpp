@@ -16,7 +16,7 @@ Sphere::Sphere(SceneObject* pSceneObject, const Vector3f& center, float R)
 bool Sphere::intersect(Ray& ray, Intersection& intersection) const
 {
 	// 将射线ray转移至局部坐标系表示下
-	Ray local_ray = Primitive::myPtrSceneObject->getObjectToWorld() * ray;
+	Ray local_ray = Primitive::myPtrSceneObject->getWorldToObject() * ray;
 
 	// 计算局部坐标系下，光线是否与球体相交
 	auto A = glm::dot(local_ray.d, local_ray.d);
