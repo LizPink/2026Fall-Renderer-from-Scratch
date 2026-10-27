@@ -1,6 +1,6 @@
 # Render from Scratch
 
-一个从基础开始学习和实现渲染的 C++ 项目。使用 C++23 模块组织相机、场景和图元，通过 XML 加载场景，在 CPU 上计算光线与图元的交点，用 MiniFB 显示渲染结果。
+这是一个从零开始实现C++渲染器项目。主要使用 C++23 模块组织项目文件，通过 XML 加载场景，在CPU上计算光线与图元的交点，用MiniFB显示渲染结果。
 
 ## 项目结构
 
@@ -8,21 +8,21 @@
 ├── CMakeLists.txt          # 构建配置
 ├── scenes/
 │   ├── scene01.xml         # 两个三角形组成的正方形
-│   ├── scene02.xml         # 犹他茶壶，当前调试场景
-│   └── scene03.xml         # 两个球与房间
+│   ├── scene02.xml         # 犹他茶壶
+│   └── scene03.xml         # 康奈尔盒子
 ├── src/
 │   ├── main.cpp           # 程序入口
-│   ├── render/            # Renderer：加载场景、计算像素并显示
+│   ├── render/            # 加载场景、计算像素并显示
 │   ├── scene/
-│   │   ├── scene.*        # Scene：管理相机和场景物体
-│   │   ├── loader/        # SceneLoader：读取 XML 并创建 Scene
+│   │   ├── scene    	   # 管理相机和场景物体
+│   │   ├── loader/        # 读取XML并创建Scene对象
 │   │   ├── camera/        # 相机和光线
 │   │   └── scene-object/  # 场景物体和图元
-│   └── utils/             # 向量、矩阵及变换工具
+│   └── utils/             # 常用数学工具
 └── lib/
     ├── minifb/            # 窗口与像素缓冲区显示
-    ├── glm/               # 向量、矩阵等数学计算
-    └── tinyxml2/          # XML 解析
+    ├── glm/               # 向量、矩阵计算
+    └── tinyxml2/          # 场景XML解析
 ```
 
 ## 场景与渲染
@@ -39,8 +39,6 @@
 场景由 Renderer 持有；Scene 释放其管理的场景物体，SceneObject 释放其管理的图元。加载失败时，主程序输出包含文件、行号和原因的错误信息并退出。
 
 当前主程序使用 1920×1080 分辨率。工作线程通过原子索引领取像素，主线程刷新窗口；每个像素在像素范围内随机采样 100 次并取平均，实现 SSAA 抗锯齿。
-
-命中点的世界空间法线通过 `normal * 0.5 + 0.5` 映射为 RGB，未命中的采样点为黑色。当前画面用于观察几何与法线，三角形曲面会显示彩色分面。求交时逐个遍历物体和图元，茶壶的绘制时间比正方形和两球场景长。
 
 ## XML 场景
 
@@ -61,14 +59,14 @@ XML 以 `Scene` 为根，包含 `Camera` 和 `SceneObjects`。每个 `SceneObjec
 | `Transform/Rotation` | 绕 X、Y、Z 轴的旋转角，格式为 `x, y, z`，单位为度 |
 | `Transform/Scale` | 一个正数，表示统一缩放比例 |
 | `Sphere/Radius` | 球半径，必须为正数 |
-| `Disk/Radius` 或 `Circle/Radius` | 圆盘半径，必须为正数；两种标签均创建 `Circle` |
+| `Circle/Radius` | 圆盘半径，必须为正数；两种标签均创建 `Circle` |
 | `Triangle/Vertex` | 三个局部坐标顶点，每个顶点为 `x, y, z`，顶点不得重合或共线 |
 
-球和圆盘以物体局部原点为中心，圆盘位于局部 XY 平面；位置和朝向通过 `Transform` 设置。三角形的顶点顺序决定法线方向。XML 注释使用 `<!-- 注释内容 -->`，放在元素之间。
+球和圆盘以物体局部原点为中心，圆盘位于局部 XY 平面；位置和朝向通过 `Transform` 设置。三角形的顶点顺序决定法线方向。
 
 ## 开发环境
 
-- Windows + Visual Studio 2026，安装“使用 C++ 的桌面开发”工作负载及 Windows SDK。
+- Windows + Visual Studio 2026，安装“使用 C++ 的桌面开发”工作负载及Windows SDK。
 - CMake 4.4.4。
 - C++23，工具链需支持 C++ 模块和 `import std;`。
 
@@ -84,7 +82,7 @@ XML 以 `Scene` 为根，包含 `Camera` 和 `SceneObjects`。每个 `SceneObjec
 
 版本号以项目内源码声明为准。MiniFB、TinyXML2 随项目编译，GLM 通过头文件使用。
 
-## 构建与运行
+## 构建运行
 
 在项目根目录打开 PowerShell，依次执行：
 
@@ -101,10 +99,8 @@ Set-Location build
 Renderer renderer{1920, 1080, "../scenes/scene02.xml"};
 ```
 
-因此运行时的工作目录需要设为项目的 `build/`。在 Visual Studio 中打开 `build/` 下的解决方案，选择 `Render_from_Scratch` 和 Release，并确认调试工作目录为 `build/`。
-
-切换场景时，修改 `src/main.cpp` 中 Renderer 构造函数的第三个参数，例如 `"../scenes/scene03.xml"`，然后重新编译。当前入口使用这条固定路径，命令行场景参数尚未接入实际构造过程。
+因此运行时的工作目录需要设为项目的 `build/`。在 Visual Studio 中打开 `build/` 下的解决方案，选择 `Render_from_Scratch` 和 Release，并确认调试工作目录为 `build/`。切换场景时，修改 `src/main.cpp` 中 Renderer 构造函数的第三个参数，例如 `"../scenes/scene03.xml"`，然后重新编译。
 
 ## 后续方向
 
-继续完善图元求交与渲染流程，增加材质和光照，并引入空间加速结构以支持更复杂的模型。
+更新光源、光照、材质。

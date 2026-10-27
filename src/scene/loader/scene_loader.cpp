@@ -161,8 +161,7 @@ namespace
     }
 }
 
-std::unique_ptr<Scene> SceneLoader::loadSceneFromXML(
-    const char* filepath, int width, int height) const
+std::unique_ptr<Scene> SceneLoader::loadSceneFromXML(const char* filepath, int width, int height) const
 {
     if (!filepath || filepath[0] == '\0')
         fail(filepath, nullptr, "scene file path must not be empty");
@@ -183,8 +182,7 @@ std::unique_ptr<Scene> SceneLoader::loadSceneFromXML(
     auto scene = std::make_unique<Scene>();
     loadCamera(*scene, child(root, "Camera", filepath, true), filepath, width, height);
     const auto* objects = child(root, "SceneObjects", filepath, true);
-    for (const auto* element = objects->FirstChildElement(); element;
-        element = element->NextSiblingElement())
+    for (const auto* element = objects->FirstChildElement(); element; element = element->NextSiblingElement())
     {
         if (std::string_view(element->Name()) != "SceneObject")
             fail(filepath, element, "expected <SceneObject>");
