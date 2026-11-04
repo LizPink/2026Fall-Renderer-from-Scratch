@@ -21,7 +21,7 @@ public:
 	*	@param ray	光线（世界坐标系）
 	*	@param intersection	相交信息记录对象
 	*/
-	virtual bool intersect(Ray& ray, Intersection& intersect) const override;
+	virtual bool intersect(const Ray& ray, Intersection& intersect) const override;
 
 private:
 	Vector3f myCenter;				/// 圆心坐标（世界坐标系）

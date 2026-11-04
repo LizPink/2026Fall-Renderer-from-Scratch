@@ -13,7 +13,7 @@ Sphere::Sphere(SceneObject* pSceneObject, const Vector3f& center, float R)
 {}
 
 
-bool Sphere::intersect(Ray& ray, Intersection& intersection) const
+bool Sphere::intersect(const Ray& ray, Intersection& intersection) const
 {
 	// 将射线ray转移至局部坐标系表示下
 	Ray local_ray = Primitive::myPtrSceneObject->getWorldToObject() * ray;

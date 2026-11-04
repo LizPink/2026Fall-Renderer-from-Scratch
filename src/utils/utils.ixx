@@ -26,6 +26,9 @@ export
 	constexpr float PI = glm::pi<float>();
 	constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
 
+	/* 颜色 */
+	using Color = Vector3f;
+
 
 	/**
 	*	@brief 生成平移变换矩阵.

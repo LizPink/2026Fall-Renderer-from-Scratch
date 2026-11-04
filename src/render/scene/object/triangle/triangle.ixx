@@ -29,7 +29,7 @@ public:
 	*	@brief		光线检测
 	*	@details	将三角形的顶点（世界坐标）和光线（世界坐标）进行光线检测. 由于三角形比较规则，直接在世界坐标中检测光线即可.
 	*/
-	virtual bool intersect(Ray& ray, Intersection& intersect) const override;
+	virtual bool intersect(const Ray& ray, Intersection& intersect) const override;
 
 private:
 	Vector3f myVertices[3];		///	三角形的顶点（世界坐标系）

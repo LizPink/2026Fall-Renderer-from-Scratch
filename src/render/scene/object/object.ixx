@@ -24,12 +24,11 @@ public:
 
 	virtual ~Primitive() = default;
 
-	virtual bool intersect(Ray& ray, Intersection& intersect) const = 0;
+	virtual bool intersect(const Ray& ray, Intersection& intersect) const = 0;
 
 protected:
 	SceneObject* myPtrSceneObject = nullptr;
 };
-
 
 
 
@@ -51,7 +50,6 @@ public:
 	template<typename T, typename...Args>
 	T* createPrimitive(Args&&...);
 
-
 	/* @brief 向场景物体中添加图元 */
 	void addPrimitive(Primitive* primitive);
 
@@ -71,11 +69,4 @@ private:
 };
 
 
-template<typename T, typename... Args>
-T* SceneObject::createPrimitive(Args&&... args)
-{
-	T* ptrPrimitive = new T(this, std::forward<Args>(args)...);
-	this->myPrimitives.push_back(ptrPrimitive);
-
-	return ptrPrimitive;
-}
+#include "object.tpp"

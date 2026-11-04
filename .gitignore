@@ -3,3 +3,6 @@
 
 # VS Settings
 /.vs/
+
+# Local archives of historical build checks and scene backups
+/archive/build-cleanup-2026-10-29/

@@ -7,8 +7,11 @@ module;
 #include <glm/ext.hpp>
 
 module renderer;
+import std;
 import utils;
+import scene;
 import scene_loader;
+import light;
 
 
 /**
@@ -21,7 +24,7 @@ Renderer::Renderer(int width, int height, const char* sceneFilepath) :
     myViewPortWidth(width),
     myViewPortHeight(height)
 {
-    // 加载器场景物体（所有权归Renderer所有）
+    // 创建场景物体
     SceneLoader loader;
     myScene = loader.loadSceneFromXML(sceneFilepath, width, height);
 }
@@ -29,16 +32,15 @@ Renderer::Renderer(int width, int height, const char* sceneFilepath) :
 
 void Renderer::run()
 {
-    // Creating Window and RenderBuffer
+    // 创建视口对象和内存缓冲区
     struct mfb_window* window = mfb_open_ex("Hello Render", myViewPortWidth, myViewPortHeight, MFB_WF_RESIZABLE);
     if (window == NULL)
         return;
     myBuffer = (uint32_t*)malloc(myViewPortWidth * myViewPortHeight * 4);
 
-    // Rendering the ViewPort
-    // 采用多个子线程进行渲染工作
+    // 渲染视口，采用多线程进行渲染
     auto numThreads = std::thread::hardware_concurrency();                  // 获取硬件（CPU）所支持的最大线程数
-    std::vector<std::thread> renderThreads(numThreads);                     // 创建一个列表，用于创建与管理子线程
+    std::vector<std::thread> renderThreads(numThreads);                     // 创建长度为 numThreads 的列表，用于创建与管理子线程
     for (int i = 0; i < numThreads; i++)
     {
         renderThreads[i] = std::thread(&Renderer::runRenderThread, this);   // 创建子线程对象（入口函数 + 调用对象）
@@ -63,6 +65,74 @@ void Renderer::run()
     free(myBuffer);
     myBuffer = NULL;
     window = NULL;
+}
+
+
+Color Renderer::renderPixel(int x, int y)
+{   
+    static const int N_SSAA = 100;    // 超级采样 Super-Sampling Anti-Aliasing 算法
+    Color finalColor {0,0,0};
+
+    for (int i = 0; i < N_SSAA; i++)
+    {
+        float px = x + glm::linearRand(0.0f, 1.0f);
+        float py = y + glm::linearRand(0.0f, 1.0f);
+
+        finalColor += this->renderSubPixel(px, py) / float(N_SSAA);
+    }
+
+    return finalColor;
+}
+
+
+/**
+*   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
+*   Step1. 通过渲染器的摄像机对场景进行相交性测试
+*/
+Color Renderer::renderSubPixel(float px, float py)
+{
+    // 定义屏幕该点光线方向（世界坐标）与相交信息
+    auto ray = myScene->getCamera().getRay(px, py);
+    Color subColor = getIrradiance(ray);
+    
+    return subColor;
+}
+
+
+/**
+* @brief 计算光照照度
+*/
+Color Renderer::getIrradiance(Ray& ray)
+{
+    /// 相交性判断1: 相机光线与场景物体是否相交（决定是否渲染）
+    Intersection intersect{};
+    if (!myScene->intersect(ray, intersect))
+        return Vector3f{ 0.0f, 0.0f, 0.0f };
+
+    Color Irradiance{ 0.0f, 0.0f, 0.0f };
+    for (auto& pLight : myScene->getLights())
+    {
+        /// 相交性判断2: 光源光线与场景物体是否相交（决定渲染亮度）
+        Vector3f sourcePosition{};
+        Color radiance = pLight->getRadiance(intersect.position, sourcePosition);
+
+        Ray shadowRay{};
+        shadowRay.o = intersect.position;
+        shadowRay.d = glm::normalize(sourcePosition - intersect.position);
+        shadowRay.minT = 1e-4f;                                             ///< 误差冗余，避免交点与自己所在的平面相交上，从而不进行光照渲染.
+        shadowRay.maxT = glm::length(intersect.position - sourcePosition);
+
+        Intersection intersect_shadow{};
+        if (myScene->intersect(shadowRay, intersect_shadow))
+            continue;
+        else
+        {
+            Vector3f lightDirection = glm::normalize(sourcePosition - intersect.position);
+            float cosTheta = glm::dot(intersect.normal, lightDirection);
+            Irradiance += radiance * glm::max(cosTheta, 0.0f);              ///< 如果光线与物体外半球相交，就对光照有贡献，否则无贡献.
+        }
+    }
+    return Irradiance;
 }
 
 
@@ -91,38 +161,4 @@ void Renderer::runRenderThread()
         assert(myBuffer != NULL);
         myBuffer[y * myViewPortWidth + x] = (r << 16) | (g << 8) | (b);
     }
-}
-
-
-Color Renderer::renderPixel(int x, int y)
-{   
-    static const int N_SSAA = 100;    // 超级采样 Super-Sampling Anti-Aliasing 算法
-    Color finalColor {0,0,0};
-
-    for (int i = 0; i < N_SSAA; i++)
-    {
-        float px = x + glm::linearRand(0.0f, 1.0f);
-        float py = y + glm::linearRand(0.0f, 1.0f);
-
-        finalColor += this->renderSubPixel(px, py) / float(N_SSAA);
-    }
-
-    return finalColor;
-}
-
-
-/**
-*   如果当前点所在光线与物体相交，则贡献渲染，否则不贡献渲染.
-*   Step1. 通过渲染器的摄像机对场景进行相交性测试
-*/
-Color Renderer::renderSubPixel(float px, float py)
-{
-    // 定义屏幕该点光线方向（世界坐标）与相交信息
-    auto ray = this->myScene->getCamera().getRay(px, py);
-    Intersection intersect{}; Color subColor{0,0,0};
-
-    if (this->myScene->intersect(ray, intersect))
-        subColor = intersect.normal * 0.5f + 0.5f;
-    
-    return subColor;
 }

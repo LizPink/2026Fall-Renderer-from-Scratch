@@ -18,7 +18,7 @@ Circle::Circle(SceneObject* pSceneObject, const Vector3f& center, const Vector3f
 {}
 
 
-bool Circle::intersect(Ray& ray, Intersection& intersect) const
+bool Circle::intersect(const Ray& ray, Intersection& intersect) const
 {
 	// 将光线ray变换到局部坐标中
 	Ray local_ray = Primitive::myPtrSceneObject->getWorldToObject() * ray;

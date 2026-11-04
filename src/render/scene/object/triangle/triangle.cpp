@@ -26,7 +26,8 @@ Triangle::Triangle(SceneObject* pSceneObject, const Vector3f& v0, const Vector3f
 	this->myNormal = glm::normalize(glm::cross(edge1, edge2));
 }
 
-bool Triangle::intersect(Ray& ray, Intersection& intersect) const
+
+bool Triangle::intersect(const Ray& ray, Intersection& intersect) const
 {
 	Vector3f p0 = this->myVertices[0];
 	Vector3f p1 = this->myVertices[1];

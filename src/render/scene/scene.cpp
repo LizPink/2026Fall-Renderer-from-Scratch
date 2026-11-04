@@ -3,21 +3,13 @@ module;
 module scene;
 
 
-/**
-*	@brief 析构函数
-*	Step1.遍历引用每一个SceneObject对象.
-*	Step2.释放对应的资源，并且将指针置空.
-*/
+/// 释放场景拥有的物体和光源.
 Scene::~Scene()
 {
-	for (auto& pSceneObject : mySceneObjects)
-	{
-		if (pSceneObject)
-		{
-			delete pSceneObject;
-			pSceneObject = nullptr;
-		}
-	}
+	for (auto* object : mySceneObjects)
+		delete object;
+	for (auto* light : mySceneLights)
+		delete light;
 }
 
 
@@ -36,7 +28,7 @@ Camera Scene::getCamera() const
 SceneObject* Scene::createSceneObject(const Vector3f& position, const Vector3f& euler, const float scaler)
 {
 	SceneObject* pSceneObject = new SceneObject{ position, euler, scaler };
-	this->mySceneObjects.push_back(pSceneObject);
+	mySceneObjects.push_back(pSceneObject);
 
 	return pSceneObject;
 }
@@ -54,4 +46,10 @@ SceneObject* Scene::intersect(Ray& ray, Intersection& intersect) const
 		}
 	}
 	return pHitObject;
+}
+
+
+const std::vector<LightBase*>& Scene::getLights() const
+{
+	return mySceneLights;
 }
