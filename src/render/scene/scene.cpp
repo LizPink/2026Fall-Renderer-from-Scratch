@@ -6,9 +6,9 @@ module scene;
 /// 释放场景拥有的物体和光源.
 Scene::~Scene()
 {
-	for (auto* object : mySceneObjects)
+	for (auto* object : myObjects)
 		delete object;
-	for (auto* light : mySceneLights)
+	for (auto* light : myLights)
 		delete light;
 }
 
@@ -25,19 +25,19 @@ Camera Scene::getCamera() const
 }
 
 
-SceneObject* Scene::createSceneObject(const Vector3f& position, const Vector3f& euler, const float scaler)
+Object* Scene::createSceneObject(const Vector3f& position, const Vector3f& euler, const float scaler)
 {
-	SceneObject* pSceneObject = new SceneObject{ position, euler, scaler };
-	mySceneObjects.push_back(pSceneObject);
+	Object* pObject = new Object{ position, euler, scaler };
+	myObjects.push_back(pObject);
 
-	return pSceneObject;
+	return pObject;
 }
 
 
-SceneObject* Scene::intersect(Ray& ray, Intersection& intersect) const
+Object* Scene::intersect(Ray ray, Intersection& intersect) const
 {
-	SceneObject* pHitObject = nullptr;
-	for (auto& object : mySceneObjects)
+	Object* pHitObject = nullptr;
+	for (auto& object : myObjects)
 	{
 		if (object->intersect(ray, intersect))
 		{
@@ -51,5 +51,5 @@ SceneObject* Scene::intersect(Ray& ray, Intersection& intersect) const
 
 const std::vector<LightBase*>& Scene::getLights() const
 {
-	return mySceneLights;
+	return myLights;
 }

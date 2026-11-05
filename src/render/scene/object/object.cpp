@@ -1,20 +1,20 @@
 module;
 #include <glm/glm.hpp>
 
-module scene_object;
+module object;
 import utils;
 
-Primitive::Primitive(SceneObject* pSceneObject)
-	: myPtrSceneObject(pSceneObject)
+Primitive::Primitive(Object* pObject)
+	: myPtrObject(pObject)
 {}
 
 
-SceneObject::SceneObject(const Vector3f& position, const Vector3f& euler, const float scaler)
+Object::Object(const Vector3f& position, const Vector3f& euler, const float scaler)
 	: myObjectToWorld(makeWorldTransformation(position, euler, scaler)), myWorldToObject(glm::inverse(this->myObjectToWorld))
 {}
 
 
-SceneObject::~SceneObject()
+Object::~Object()
 {
     for (auto& primitive : myPrimitives)
     {
@@ -27,13 +27,13 @@ SceneObject::~SceneObject()
 }
 
 
-void SceneObject::addPrimitive(Primitive* primitive)
+void Object::addPrimitive(Primitive* primitive)
 {
     this->myPrimitives.push_back(primitive);
 }
 
 
-bool SceneObject::intersect(Ray& ray, Intersection& intersect)
+bool Object::intersect(Ray ray, Intersection& intersect)
 {
     bool hit_flag{false};
 
@@ -50,12 +50,25 @@ bool SceneObject::intersect(Ray& ray, Intersection& intersect)
 }
 
 
-Matrix4x4f SceneObject::getObjectToWorld()
+Matrix4x4f Object::getObjectToWorld() const
 {
 	return this->myObjectToWorld;
 }
 
-Matrix4x4f SceneObject::getWorldToObject()
+
+Matrix4x4f Object::getWorldToObject() const
 {
 	return this->myWorldToObject;
+}
+
+
+auto Object::setMaterial(std::weak_ptr<MaterialBase> pMaterial) -> void
+{
+    myMaterial = std::move(pMaterial);
+}
+
+
+auto Object::getMaterial() const -> std::weak_ptr<MaterialBase>
+{
+    return myMaterial;
 }

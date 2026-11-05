@@ -12,8 +12,8 @@ import ray;
 *	@param euler	圆盘的朝向（世界坐标）
 *	@param radius	圆盘的半径
 */
-Circle::Circle(SceneObject* pSceneObject, const Vector3f& center, const Vector3f& euler, float radius)
-	: Primitive(pSceneObject),
+Circle::Circle(Object* pObject, const Vector3f& center, const Vector3f& euler, float radius)
+	: Primitive(pObject),
 	  myCenter(center), myRadius(radius)
 {}
 
@@ -21,7 +21,7 @@ Circle::Circle(SceneObject* pSceneObject, const Vector3f& center, const Vector3f
 bool Circle::intersect(const Ray& ray, Intersection& intersect) const
 {
 	// 将光线ray变换到局部坐标中
-	Ray local_ray = Primitive::myPtrSceneObject->getWorldToObject() * ray;
+	Ray local_ray = Primitive::myPtrObject->getWorldToObject() * ray;
 
 	// 判断是否与圆盘所在平面相交
 	if (std::fabsf(local_ray.d.z) < 1e-6f)	// 平行于该圆盘
@@ -37,8 +37,8 @@ bool Circle::intersect(const Ray& ray, Intersection& intersect) const
 
 	// 记录相交信息
 	intersect.t = solve_t;
-	intersect.position = Vector3f(Primitive::myPtrSceneObject->getObjectToWorld() * Vector4f{ intersect_point, 1.0f });
-	intersect.normal = Vector3f(glm::normalize(Primitive::myPtrSceneObject->getObjectToWorld() * Vector4f{ 0.0f, 0.0f, 1.0f, 0.0f }));
+	intersect.position = Vector3f(Primitive::myPtrObject->getObjectToWorld() * Vector4f{ intersect_point, 1.0f });
+	intersect.normal = Vector3f(glm::normalize(Primitive::myPtrObject->getObjectToWorld() * Vector4f{ 0.0f, 0.0f, 1.0f, 0.0f }));
 
 	return true;
 }

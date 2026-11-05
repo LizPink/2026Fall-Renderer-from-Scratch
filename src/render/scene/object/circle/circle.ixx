@@ -3,7 +3,7 @@ module;
 export module circle;
 import utils;
 import ray;
-import scene_object;
+import object;
 
 /**
 *	@brief 位于Z轴上的圆盘（局部坐标）
@@ -15,7 +15,7 @@ public:
 	Circle(Circle&)			= delete;
 	Circle(const Circle&)	= delete;
 	Circle(Circle&&)		= delete;
-	Circle(SceneObject* pSceneObject, const Vector3f& center, const Vector3f& euler, float radius);
+	Circle(Object* pObject, const Vector3f& center, const Vector3f& euler, float radius);
 
 	/**
 	*	@param ray	光线（世界坐标系）

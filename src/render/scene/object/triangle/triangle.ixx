@@ -4,7 +4,7 @@ export module triangle;
 
 import utils;
 import ray;
-import scene_object;
+import object;
 
 // 前向声明
 export class Triangle;
@@ -21,7 +21,7 @@ public:
 	Triangle(const Triangle&)	= delete;
 	Triangle(Triangle&&)		= delete;
 	/* @brief 构造函数 */
-	Triangle(SceneObject* pSceneObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2);
+	Triangle(Object* pSceneObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2);
 
 	~Triangle() = default;
 

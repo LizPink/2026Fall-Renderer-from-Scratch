@@ -50,14 +50,14 @@
 | 类型 | 职责 |
 | --- | --- |
 | `Scene` | 保存相机，管理物体和光源，查找光线最近命中的物体 |
-| `SceneObject` | 保存物体变换，管理物体内的多个图元 |
+| `Object` | 保存物体变换，管理物体内的多个图元 |
 | `Primitive` | 定义图元的求交接口，由 `Sphere`、`Circle`、`Triangle` 实现 |
 | `Camera` | 根据位置、朝向和投影参数，将屏幕采样点转换为世界空间光线 |
 | `Light` | 定义光源接口，由 `DirectionalLight`、`PointLight`、`SpotLight` 实现 |
 | `SceneLoader` | 解析 XML，创建相机、物体、图元和光源，返回 `std::unique_ptr<Scene>` |
 | `Renderer` | 持有场景，计算像素颜色，并通过 MiniFB 显示缓冲区 |
 
-场景由 Renderer 持有；Scene 释放其管理的物体和光源，SceneObject 释放其管理的图元。加载器遇到文件读取失败、缺少必填节点或无法读取数值时抛出 `std::runtime_error`。
+场景由 Renderer 持有；Scene 释放其管理的物体和光源，Object 释放其管理的图元。加载器遇到文件读取失败、缺少必填节点或无法读取数值时抛出 `std::runtime_error`。
 
 加载流程按 `loadCamera`、`loadObjects`、`loadLights` 分开，物体中的图元交给 `loadPrimitive`。这是教学演示项目，XML 按示例填写；参数范围和几何关系由场景作者保证。
 
@@ -71,7 +71,7 @@
 | `scenes/scene02.xml` | 完整犹他茶壶，包含壶身、壶底、壶盖、壶钮、壶嘴和把手；曲面离散为 248 个三角形，文件内有参数和部件注释 |
 | `scenes/scene03.xml` | 两个球，以及由 10 个三角形组成的地面、天花板和三面墙 |
 
-XML 以 `Scene` 为根，包含 `Camera`、`SceneObjects` 和可选的 `Lights`。每个 `SceneObject` 包含 `Transform` 和 `Primitives`；一个物体可以包含多个图元。物体格式参考 `scene01.xml`，光源字段见下表。
+XML 以 `Scene` 为根，包含 `Camera`、`Objects` 和材质定义 `Materials`、可选的 `Lights`。每个 `Object` 必须包含 `Material` 和 `Primitives`，`Transform` 可省略；一个物体可以包含多个图元。物体格式参考 `scene01.xml`，材质和光源字段见下文。
 
 | 元素 | 格式与含义 |
 | --- | --- |
@@ -88,6 +88,24 @@ XML 以 `Scene` 为根，包含 `Camera`、`SceneObjects` 和可选的 `Lights`�
 球和圆盘以物体局部原点为中心，圆盘位于局部 XY 平面；位置和朝向通过 `Transform` 设置。三角形的顶点顺序决定法线方向。
 
 省略 `Transform` 时，位置和旋转为零、缩放为 1；其中的字段也可以单独省略。`Radius` 默认 1，`NearZ`、`FarZ`、`Fov` 默认分别为 0.1、1000、45。
+
+`Materials` 中使用 `Material` 节点定义材质，`Name` 指定名称，`Type` 指定类型。目前支持 `Lambert`（对应 `LambertMaterial`），必填的 `Albedo` 按 `r, g, b` 填写，示例见 `scene05.xml`：
+
+```xml
+<Materials>
+    <Material>
+        <Name>red</Name>
+        <Type>Lambert</Type>
+        <Albedo>0.8, 0.1, 0.1</Albedo>
+    </Material>
+</Materials>
+```
+
+`Name`、`Type` 必填且不能为空，读取时会去除两端空白。材质节点必须为 `Material`，`Type` 目前只接受 `Lambert`。
+
+每个 `Object` 都必须添加 `<Material>red</Material>` 这样的材质引用，与 `Transform`、`Primitives` 同级。多个物体可以引用同一材质；材质定义的名称必须非空且唯一，引用的材质必须存在。加载器先读取全部材质，再绑定物体，因此 `Materials` 在 XML 中的先后位置不影响引用。
+
+物体缺少 `Material`、引用为空或引用的材质未定义时，加载器直接报错，确保加载成功的场景中每个物体都已绑定材质。材质由 `Scene` 持有，通过 `Object::getMaterial().lock()` 获取。
 
 `Lights` 中直接放置光源节点，每个节点创建一个光源：
 

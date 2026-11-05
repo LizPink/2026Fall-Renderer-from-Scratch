@@ -93,26 +93,26 @@ Color Renderer::renderSubPixel(float px, float py)
 {
     // 定义屏幕该点光线方向（世界坐标）与相交信息
     auto ray = myScene->getCamera().getRay(px, py);
-    Color subColor = getIrradiance(ray);
+    Color subColor = getRadiance(ray);
     
     return subColor;
 }
 
 
-/**
-* @brief 计算光照照度
-*/
-Color Renderer::getIrradiance(Ray& ray)
+/**************************************************
+ * @brief 计算光照照度
+**************************************************/
+Color Renderer::getIrradiance(const Ray& ray)
 {
     /// 相交性判断1: 相机光线与场景物体是否相交（决定是否渲染）
     Intersection intersect{};
     if (!myScene->intersect(ray, intersect))
         return Vector3f{ 0.0f, 0.0f, 0.0f };
 
+    /// 相交性判断2: 光源光线与场景物体是否相交（决定渲染亮度）
     Color Irradiance{ 0.0f, 0.0f, 0.0f };
     for (auto& pLight : myScene->getLights())
     {
-        /// 相交性判断2: 光源光线与场景物体是否相交（决定渲染亮度）
         Vector3f sourcePosition{};
         Color radiance = pLight->getRadiance(intersect.position, sourcePosition);
 
@@ -127,12 +127,60 @@ Color Renderer::getIrradiance(Ray& ray)
             continue;
         else
         {
-            Vector3f lightDirection = glm::normalize(sourcePosition - intersect.position);
+            Vector3f lightDirection = shadowRay.d;
             float cosTheta = glm::dot(intersect.normal, lightDirection);
-            Irradiance += radiance * glm::max(cosTheta, 0.0f);              ///< 如果光线与物体外半球相交，就对光照有贡献，否则无贡献.
+            cosTheta = glm::max(cosTheta, 0.0f);                            ///< 如果光线与物体外半球相交，就对光照有贡献，否则无贡献.
+            Irradiance += radiance * cosTheta;
         }
     }
     return Irradiance;
+}
+
+
+/**************************************************
+ * @brief 计算光照亮度
+**************************************************/
+Color Renderer::getRadiance(const Ray& ray)
+{
+    /// 相交性判断1: 相机光线与场景物体是否相交（决定是否渲染）
+    Intersection intersect{};
+    Object* object = myScene->intersect(ray, intersect);
+    if (!object)
+        return Vector3f{ 0.0f, 0.0f, 0.0f };
+
+    /// 相交性判断2: 光源光线与场景物体是否相交（决定渲染亮度）
+    Color Lo{ 0.0f, 0.0f, 0.0f };
+    for (auto& pLight : myScene->getLights())
+    {
+        Vector3f sourcePosition{};
+        Color Li = pLight->getRadiance(intersect.position, sourcePosition);
+
+        /// 计算是否存在阴影，存在阴影则不对亮度有贡献，反之则结合物体材质，计算亮度贡献
+        Ray shadowRay{};
+        shadowRay.o = intersect.position;
+        shadowRay.d = glm::normalize(sourcePosition - intersect.position);
+        shadowRay.minT = 1e-4f;                                             ///< 误差冗余，避免交点与自己所在的平面相交上，从而不进行光照渲染.
+        shadowRay.maxT = glm::length(intersect.position - sourcePosition);
+
+        Intersection intersect_shadow{};
+        if (myScene->intersect(shadowRay, intersect_shadow))
+            continue;
+        else
+        {
+            Vector3f lightDirection = shadowRay.d;
+            float cosTheta = glm::dot(intersect.normal, lightDirection);
+            cosTheta = glm::max(cosTheta, 0.0f);                            ///< 如果光线与物体外半球相交，就对光照有贡献，否则无贡献.
+
+            Matrix3x3f localToWorld = makeCoordinateSystem(intersect.normal);
+            Matrix3x3f worldToLocal = glm::transpose(localToWorld);
+            Vector3f wo = worldToLocal * (-ray.d);                          ///< 该点的出射方向
+            Vector3f wi = worldToLocal * shadowRay.d;                       ///< 该点的入射方向
+            Color brdf = object->getMaterial().lock()->BRDF(wo, wi);
+
+            Lo += brdf * Li * cosTheta;
+        }
+    }
+    return Lo;
 }
 
 

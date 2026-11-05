@@ -3,7 +3,7 @@ module;
 export module sphere;
 import utils;
 import ray;
-import scene_object;
+import object;
 
 export
 {
@@ -16,7 +16,7 @@ export
 		*	@param pSceneObject	传递给基类构造函数，用于构造基类部分
 		*	@param center 球面的球心位置（世界坐标系下）.
 		*/
-		Sphere(SceneObject* pSceneObject, const Vector3f& center, float R);
+		Sphere(Object* pObject, const Vector3f& center, float R);
 
 		/**
 		*	@brief 判断给定光线是否与几何体相交

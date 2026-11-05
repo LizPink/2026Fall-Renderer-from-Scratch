@@ -10,10 +10,10 @@ import std;
 *	@param	v0->v1->v2		三角形的三个顺序顶点（局部坐标系）
 *	@param	objectToWorld	世界变换矩阵（局部坐标系 -> 世界坐标）
 */
-Triangle::Triangle(SceneObject* pSceneObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2)
-	: Primitive(pSceneObject)
+Triangle::Triangle(Object* pObject, const Vector3f& v0, const Vector3f& v1, const Vector3f& v2)
+	: Primitive(pObject)
 {
-	Matrix4x4f objectToWorld = Primitive::myPtrSceneObject->getObjectToWorld();
+	Matrix4x4f objectToWorld = Primitive::myPtrObject->getObjectToWorld();
 
 	// 计算三个顶点的世界坐标
 	this->myVertices[0] = Vector3f(objectToWorld * Vector4f{v0,1.0f});

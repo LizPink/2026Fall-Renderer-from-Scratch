@@ -70,3 +70,23 @@ Matrix4x4f makeWorldTransformation(const Vector3f& direction, const Vector3f& an
 	// Default Order: TRS
 	return transition * rotation * scaling;
 }
+
+
+auto makeCoordinateSystem(const Vector3f& w) -> Matrix3x3f
+{
+	/// 尝试世界坐标中的 (1,0,0) 作为 u 方向.
+	Vector3f u{1, 0, 0};
+
+	if (std::abs(glm::dot(u, w)) > 0.99f)
+		u = Vector3f{0, 1, 0};
+
+	Vector3f v = glm::cross(w, u);
+	u = glm::cross(v, w);
+
+	/// 归一化：确保改变换是单纯的旋转变换（剔除缩放变换的影响）
+	u = glm::normalize(u);
+	v = glm::normalize(v);
+
+	/// 返回世界变换矩阵
+	return Matrix3x3f{u, v, w};
+}

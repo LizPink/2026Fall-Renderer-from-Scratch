@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     scene02：犹他茶壶（Utah Teapot）。
-    沿用 scene01.xml / scene03.xml 的 Scene、Camera、SceneObject 和 Triangle 格式。
+    沿用 scene01.xml / scene03.xml 的 Scene、Camera、Object 和 Triangle 格式。
     标准 Bézier 曲面已离散成三角形，当前加载器可以直接读取，无需额外模型文件。
     每个曲面在两个参数方向各分成 2 段，共 248 个非退化三角形。
     这是低细分版本；当前渲染器按面法线着色，因此表面会显示彩色分面。
@@ -50,9 +50,17 @@
         <Fov>30</Fov>
     </Camera>
 
-    <SceneObjects>
-        <!-- 整个茶壶共用一个 SceneObject，修改 Transform 即可调整所有部件。 -->
-        <SceneObject>
+    <Materials>
+        <Material>
+            <Name>M_Lambert_Gray</Name>
+            <Type>Lambert</Type>
+            <Albedo>0.5, 0.5, 0.5</Albedo>
+        </Material>
+    </Materials>
+
+    <Objects>
+        <!-- 整个茶壶共用一个 Object，修改 Transform 即可调整所有部件。 -->
+        <Object>
             <Transform>
                 <!-- Position：整体平移；Rotation：绕 X、Y、Z 轴旋转，单位为度。 -->
                 <Position>0, 0, 0</Position>
@@ -60,6 +68,7 @@
                 <!-- Scale：统一缩放倍数，必须大于 0。 -->
                 <Scale>1</Scale>
             </Transform>
+            <Material>M_Lambert_Gray</Material>
             <Primitives>
                 <!-- 每个 Triangle 的三个 Vertex 为局部坐标 x, y, z。 -->
                 <!-- 顶点绕序决定法线方向；这里将曲面的法线统一朝外。 -->
@@ -1324,6 +1333,6 @@
                     <Vertex>1.7140625, 1.2386719, 0</Vertex>
                 </Triangle>
             </Primitives>
-        </SceneObject>
-    </SceneObjects>
+        </Object>
+    </Objects>
 </Scene>

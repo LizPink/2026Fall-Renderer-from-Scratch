@@ -8,13 +8,22 @@
         <FarZ>1000</FarZ>
         <Fov>60</Fov>
     </Camera>
-    <SceneObjects>
-        <SceneObject>
+    <Materials>
+        <Material>
+            <Name>M_Lambert_Gray</Name>
+            <Type>Lambert</Type>
+            <Albedo>0.5, 0.5, 0.5</Albedo>
+        </Material>
+    </Materials>
+
+    <Objects>
+        <Object>
             <Transform>
                 <Position>0, 0, 5</Position>
                 <Rotation>0, 0, 0</Rotation>
                 <Scale>2</Scale>
             </Transform>
+            <Material>M_Lambert_Gray</Material>
             <Primitives>
                 <Triangle>
                     <Vertex>-1, -1, 0</Vertex>
@@ -27,6 +36,6 @@
                     <Vertex>-1, 1, 0</Vertex>
                 </Triangle>
             </Primitives>
-        </SceneObject>
-    </SceneObjects>
+        </Object>
+    </Objects>
 </Scene>

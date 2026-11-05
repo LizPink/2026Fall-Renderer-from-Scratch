@@ -15,7 +15,6 @@ export class Renderer
 public:
 	Renderer()					= delete;
 	Renderer(Renderer&)			= delete;
-	Renderer(const Renderer&)	= delete;
 	Renderer(Renderer &&)		= delete;
 	Renderer(int width, int height, const char* sceneFilepath);
 
@@ -27,13 +26,22 @@ public:
 private:
 	int myViewPortWidth = 800;
 	int myViewPortHeight = 600;
-	uint32_t* myBuffer = nullptr;
+	uint32* myBuffer = nullptr;
 
+
+	/**************************************************
+	* @brief 渲染方法
+	**************************************************/
 	/// 渲染缓冲区像素
 	Color renderPixel(int x, int y);
 	Color renderSubPixel(float px, float py);
+
 	/// 渲染光照照度
-	Color getIrradiance(Ray& ray);
+	Color getIrradiance(const Ray& ray);
+	
+	/// 渲染光照亮度
+	Color getRadiance(const Ray& ray);
+
 
 	/// 缓冲区内存索引（供多线程使用）
 	std::atomic<int> myCurrentPixelIndex = 0;

@@ -8,6 +8,9 @@ import std;
 
 export
 {
+	/* 数字 */
+	using uint32 = uint32_t;
+
 	/* 分数向量 */
 	using Vector2f = glm::vec2;
 	using Vector3f = glm::vec3;
@@ -23,7 +26,8 @@ export
 	using Matrix4x4f = glm::mat4;
 
 	/* 常量 */
-	constexpr float PI = glm::pi<float>();
+	constexpr float PI		= glm::pi<float>();
+	constexpr float INV_PI	= 1 / glm::pi<float>();
 	constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
 
 	/* 颜色 */
@@ -56,4 +60,14 @@ export
 	*	@param scaler		缩放系数，默认等比例缩放。
 	*/
 	Matrix4x4f makeWorldTransformation(const Vector3f& direction, const Vector3f& rotation, float scaler);
+
+	/*************************
+	* @brief 以给定方向为 z 轴，构建一个局部坐标系，返回对应的世界变换（局部坐标系 -> 世界坐标系）.
+	* @param w （单位向量）
+	* @return 返回的是表示单纯的正交旋转变换矩阵.
+	* @note 生成的坐标系在世界空间中不唯一. 在计算 BRDF 的时候适合用于各向同性的材质，对于各项异性的材质需要结合 mesh 进一步计算.
+	*************************/
+	auto makeCoordinateSystem(const Vector3f& w) -> Matrix3x3f;
 }
+
+

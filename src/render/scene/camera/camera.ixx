@@ -20,7 +20,7 @@ public:
 	Ray getRay(float x, float y) const;
 
 private:
-	Vector3f myPosition;
-	Matrix4x4f myCombineMatrix;
-	Matrix4x4f myInverseMatrix;
+	Vector3f myPosition{};
+	Matrix4x4f myCombineMatrix{};
+	Matrix4x4f myInverseMatrix{};
 };
